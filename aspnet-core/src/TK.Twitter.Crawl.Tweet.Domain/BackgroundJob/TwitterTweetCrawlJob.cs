@@ -348,6 +348,13 @@ namespace TK.Twitter.Crawl.Jobs
                 tweet.ViewsCount = tweetResult["views"]["count"].Value<int>();
             }
 
+            var tweetUser = tweetResult["core"]?["user_results"]?["result"]?["legacy"];
+            if (tweetUser != null)
+            {
+                tweet.UserName = tweetUser["name"].ParseIfNotNull<string>();
+                tweet.UserScreenName = tweetUser["screen_name"].ParseIfNotNull<string>();
+            }
+
             var tweetLegacy = tweetResult["legacy"];
 
             string format = "ddd MMM dd HH:mm:ss zzzz yyyy";

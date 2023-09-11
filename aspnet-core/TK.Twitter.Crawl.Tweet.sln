@@ -1,0 +1,160 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33403.182
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CA9AC87F-097E-4F15-8393-4BC07735A5B0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{8C828DC4-2560-42B8-ACF7-BB426850CACF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "twitter-account", "twitter-account", "{66EFECEB-9E1F-4425-8D5A-6946E86F0D92}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.TwitterAccount.Domain.Shared", "modules\twitter-account\TK.TwitterAccount.Domain.Shared\TK.TwitterAccount.Domain.Shared.csproj", "{8A923374-FA5E-45F4-BA86-C349BE73E3B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.TwitterAccount.Domain", "modules\twitter-account\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj", "{832EBBE7-CE8F-4C2B-A656-E22B122BFE73}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.TwitterAccount.EntityFrameworkCore", "modules\twitter-account\TK.TwitterAccount.EntityFrameworkCore\TK.TwitterAccount.EntityFrameworkCore.csproj", "{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ultils", "ultils", "{D714B4DE-801A-4374-B6CB-8AE2F4C95045}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Ultil", "modules\ultils\TK.Ultil\TK.Ultil.csproj", "{7CF1C40F-F13C-423A-B47A-E9DC163BA596}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "telegram-bot", "telegram-bot", "{2C68CCBA-8EA4-478C-B488-6B9CC9386F23}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Telegram.Domain.Shared", "modules\telegram-bot\TK.Telegram.Domain.Shared\TK.Telegram.Domain.Shared.csproj", "{2A6368F8-AD40-4F19-8927-D61C514D31E1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Telegram.Domain", "modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj", "{FD218407-9939-454F-A772-F9F14C784AAC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Telegram.BackgroundJobs", "modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj", "{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Telegram.EntityFrameworkCore", "modules\telegram-bot\TK.Telegram.EntityFrameworkCore\TK.Telegram.EntityFrameworkCore.csproj", "{61EFE745-2A1B-42B2-A180-98DA89C273BC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.Domain.Shared", "src\TK.Twitter.Crawl.Tweet.Domain.Shared\TK.Twitter.Crawl.Tweet.Domain.Shared.csproj", "{BF1D0114-E7AF-46B4-9234-03FA4914B2A2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.Application", "src\TK.Twitter.Crawl.Tweet.Application\TK.Twitter.Crawl.Tweet.Application.csproj", "{8F9F65FD-1E97-4F14-9953-E53724995F7E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.Application.Contracts", "src\TK.Twitter.Crawl.Tweet.Application.Contracts\TK.Twitter.Crawl.Tweet.Application.Contracts.csproj", "{DAB15E97-F61F-4BE6-9925-4E9149CA95D0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.ConsoleApp", "src\TK.Twitter.Crawl.Tweet.ConsoleApp\TK.Twitter.Crawl.Tweet.ConsoleApp.csproj", "{767C8A60-C3DD-4084-98F9-FAC67A852981}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.DbMigrator", "src\TK.Twitter.Crawl.Tweet.DbMigrator\TK.Twitter.Crawl.Tweet.DbMigrator.csproj", "{DCD4342D-E669-4429-9C5E-75F9D8198259}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.Domain", "src\TK.Twitter.Crawl.Tweet.Domain\TK.Twitter.Crawl.Tweet.Domain.csproj", "{75D6C25B-BE25-4E4B-911F-CF5C94E1D187}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.EntityFrameworkCore", "src\TK.Twitter.Crawl.Tweet.EntityFrameworkCore\TK.Twitter.Crawl.Tweet.EntityFrameworkCore.csproj", "{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.HttpApi", "src\TK.Twitter.Crawl.Tweet.HttpApi\TK.Twitter.Crawl.Tweet.HttpApi.csproj", "{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.HttpApi.Client", "src\TK.Twitter.Crawl.Tweet.HttpApi.Client\TK.Twitter.Crawl.Tweet.HttpApi.Client.csproj", "{CBDF898A-8129-4EBD-8657-E84E18106A0E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Twitter.Crawl.Tweet.HttpApi.Host", "src\TK.Twitter.Crawl.Tweet.HttpApi.Host\TK.Twitter.Crawl.Tweet.HttpApi.Host.csproj", "{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8A923374-FA5E-45F4-BA86-C349BE73E3B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A923374-FA5E-45F4-BA86-C349BE73E3B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A923374-FA5E-45F4-BA86-C349BE73E3B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A923374-FA5E-45F4-BA86-C349BE73E3B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{832EBBE7-CE8F-4C2B-A656-E22B122BFE73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{832EBBE7-CE8F-4C2B-A656-E22B122BFE73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{832EBBE7-CE8F-4C2B-A656-E22B122BFE73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{832EBBE7-CE8F-4C2B-A656-E22B122BFE73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CF1C40F-F13C-423A-B47A-E9DC163BA596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CF1C40F-F13C-423A-B47A-E9DC163BA596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CF1C40F-F13C-423A-B47A-E9DC163BA596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CF1C40F-F13C-423A-B47A-E9DC163BA596}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A6368F8-AD40-4F19-8927-D61C514D31E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A6368F8-AD40-4F19-8927-D61C514D31E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A6368F8-AD40-4F19-8927-D61C514D31E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A6368F8-AD40-4F19-8927-D61C514D31E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD218407-9939-454F-A772-F9F14C784AAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD218407-9939-454F-A772-F9F14C784AAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD218407-9939-454F-A772-F9F14C784AAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD218407-9939-454F-A772-F9F14C784AAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61EFE745-2A1B-42B2-A180-98DA89C273BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61EFE745-2A1B-42B2-A180-98DA89C273BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61EFE745-2A1B-42B2-A180-98DA89C273BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61EFE745-2A1B-42B2-A180-98DA89C273BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF1D0114-E7AF-46B4-9234-03FA4914B2A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF1D0114-E7AF-46B4-9234-03FA4914B2A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF1D0114-E7AF-46B4-9234-03FA4914B2A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF1D0114-E7AF-46B4-9234-03FA4914B2A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F9F65FD-1E97-4F14-9953-E53724995F7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F9F65FD-1E97-4F14-9953-E53724995F7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F9F65FD-1E97-4F14-9953-E53724995F7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F9F65FD-1E97-4F14-9953-E53724995F7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAB15E97-F61F-4BE6-9925-4E9149CA95D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAB15E97-F61F-4BE6-9925-4E9149CA95D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAB15E97-F61F-4BE6-9925-4E9149CA95D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAB15E97-F61F-4BE6-9925-4E9149CA95D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{767C8A60-C3DD-4084-98F9-FAC67A852981}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{767C8A60-C3DD-4084-98F9-FAC67A852981}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{767C8A60-C3DD-4084-98F9-FAC67A852981}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{767C8A60-C3DD-4084-98F9-FAC67A852981}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCD4342D-E669-4429-9C5E-75F9D8198259}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCD4342D-E669-4429-9C5E-75F9D8198259}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCD4342D-E669-4429-9C5E-75F9D8198259}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCD4342D-E669-4429-9C5E-75F9D8198259}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75D6C25B-BE25-4E4B-911F-CF5C94E1D187}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75D6C25B-BE25-4E4B-911F-CF5C94E1D187}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75D6C25B-BE25-4E4B-911F-CF5C94E1D187}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75D6C25B-BE25-4E4B-911F-CF5C94E1D187}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBDF898A-8129-4EBD-8657-E84E18106A0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBDF898A-8129-4EBD-8657-E84E18106A0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBDF898A-8129-4EBD-8657-E84E18106A0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBDF898A-8129-4EBD-8657-E84E18106A0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{66EFECEB-9E1F-4425-8D5A-6946E86F0D92} = {8C828DC4-2560-42B8-ACF7-BB426850CACF}
+		{8A923374-FA5E-45F4-BA86-C349BE73E3B2} = {66EFECEB-9E1F-4425-8D5A-6946E86F0D92}
+		{832EBBE7-CE8F-4C2B-A656-E22B122BFE73} = {66EFECEB-9E1F-4425-8D5A-6946E86F0D92}
+		{7C3DB31E-75B9-4C7D-A530-30AC3958EAF4} = {66EFECEB-9E1F-4425-8D5A-6946E86F0D92}
+		{D714B4DE-801A-4374-B6CB-8AE2F4C95045} = {8C828DC4-2560-42B8-ACF7-BB426850CACF}
+		{7CF1C40F-F13C-423A-B47A-E9DC163BA596} = {D714B4DE-801A-4374-B6CB-8AE2F4C95045}
+		{2C68CCBA-8EA4-478C-B488-6B9CC9386F23} = {8C828DC4-2560-42B8-ACF7-BB426850CACF}
+		{2A6368F8-AD40-4F19-8927-D61C514D31E1} = {2C68CCBA-8EA4-478C-B488-6B9CC9386F23}
+		{FD218407-9939-454F-A772-F9F14C784AAC} = {2C68CCBA-8EA4-478C-B488-6B9CC9386F23}
+		{5CA5BD11-E4F3-46BC-B27C-75D48BBC874E} = {2C68CCBA-8EA4-478C-B488-6B9CC9386F23}
+		{61EFE745-2A1B-42B2-A180-98DA89C273BC} = {2C68CCBA-8EA4-478C-B488-6B9CC9386F23}
+		{BF1D0114-E7AF-46B4-9234-03FA4914B2A2} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{8F9F65FD-1E97-4F14-9953-E53724995F7E} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{DAB15E97-F61F-4BE6-9925-4E9149CA95D0} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{767C8A60-C3DD-4084-98F9-FAC67A852981} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{DCD4342D-E669-4429-9C5E-75F9D8198259} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{75D6C25B-BE25-4E4B-911F-CF5C94E1D187} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{B75DC33C-1BFD-4EE7-8C70-3B9A4A9A8755} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{46BC11B1-EFF5-4A86-B7B5-F8F9C676A6DC} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{CBDF898A-8129-4EBD-8657-E84E18106A0E} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+		{08DC71F2-A7EA-4DCA-80B5-0AD6E70C0658} = {CA9AC87F-097E-4F15-8393-4BC07735A5B0}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}
+	EndGlobalSection
+EndGlobal

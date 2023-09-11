@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="7.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj" />
+  </ItemGroup>
+</Project>

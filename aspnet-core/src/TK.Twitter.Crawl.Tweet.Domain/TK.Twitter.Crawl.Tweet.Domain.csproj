@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<Import Project="..\..\common.props" />
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>disable</Nullable>
+		<RootNamespace>TK.Twitter.Crawl.Tweet</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="BackgroundJob\TwitterFollowingCrawlJob_v2.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
+		<PackageReference Include="Volo.Abp.Emailing" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.Identity.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.PermissionManagement.Domain.Identity" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.BackgroundJobs.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.AuditLogging.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.TenantManagement.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.FeatureManagement.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.SettingManagement.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.OpenIddict.Domain" Version="7.2.1" />
+		<PackageReference Include="Volo.Abp.PermissionManagement.Domain.OpenIddict" Version="7.2.1" />
+		<PackageReference Include="DistributedLock.Redis" Version="1.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Volo.Abp.Http.Client" Version="7.2.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj" />
+	  <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />
+	  <ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj" />
+	  <ProjectReference Include="..\..\modules\ultils\TK.Ultil\TK.Ultil.csproj" />
+	  <ProjectReference Include="..\TK.Twitter.Crawl.Tweet.Domain.Shared\TK.Twitter.Crawl.Tweet.Domain.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Twitter\" />
+	</ItemGroup>
+
+</Project>

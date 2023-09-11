@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	  <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+	  <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="7.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TK.Telegram.Domain.Shared\TK.Telegram.Domain.Shared.csproj" />
+    <ProjectReference Include="..\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+{
+  "culture": "en",
+  "texts": {
+    "TwitterAccount:00000": "Unexpected exception",
+    "TwitterAccount:00001": "Unauthorized",
+    "TwitterAccount:00002": "Forbiden resource",
+    "TwitterAccount:00003": "Not found",
+    "TwitterAccount:00004": "Too many request"
+  }
+}

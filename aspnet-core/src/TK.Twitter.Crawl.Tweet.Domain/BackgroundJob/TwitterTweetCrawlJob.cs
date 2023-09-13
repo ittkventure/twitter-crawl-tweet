@@ -125,6 +125,7 @@ namespace TK.Twitter.Crawl.Jobs
                             var entries = new List<TwitterTweetCrawlRawEntity>();
                             string messageGet = string.Empty;
                             bool succeedGet = false;
+                            bool shouldStop = false;
                             string cursor = null;
                             string accountId = args.TwitterAccountId;
                             int loop = 0;
@@ -132,13 +133,12 @@ namespace TK.Twitter.Crawl.Jobs
                             while (true)
                             {
                                 loop++;
-                                //if (loop == 11)
-                                if (loop == 3)
-                                {
-                                    succeedGet = true;
-                                    messageGet = "Succeed";
-                                    break;
-                                }
+                                //if (loop == 3)
+                                //{
+                                //    succeedGet = true;
+                                //    messageGet = "Succeed";
+                                //    break;
+                                //}
 
                                 TwitterAPIGetTweetResponse response = null;
                                 try
@@ -230,6 +230,13 @@ namespace TK.Twitter.Crawl.Jobs
                                         tweetId = tweetResult["rest_id"].ParseIfNotNull<string>();
                                     }
 
+                                    var createdAt = GetTweetCreatedAt(entry);
+                                    if (createdAt.HasValue && createdAt.Value < new DateTime(2023, 6, 1))
+                                    {
+                                        shouldStop = true;
+                                        break;
+                                    }
+
                                     if (tweetInPages.Any(x => x.TweetId == tweetId))
                                     {
                                         continue;
@@ -250,6 +257,13 @@ namespace TK.Twitter.Crawl.Jobs
                                 }
 
                                 entries.AddRange(tweetInPages);
+
+                                if (shouldStop)
+                                {
+                                    succeedGet = true;
+                                    messageGet = "Succeed";
+                                    break;
+                                }
                             }
 
                             if (!succeedGet)
@@ -489,6 +503,33 @@ namespace TK.Twitter.Crawl.Jobs
                     }
                 }
             }
+        }
+
+        public DateTime? GetTweetCreatedAt(JToken entry)
+        {
+            var content = entry["content"];
+            var itemContent = content["itemContent"];
+            var tweetResult = itemContent["tweet_results"]["result"];
+            var result_type = itemContent["tweet_results"]["result"]["__typename"].ParseIfNotNull<string>();
+            if (result_type == "TweetWithVisibilityResults")
+            {
+                tweetResult = tweetResult["tweet"];
+            }
+
+            var tweetLegacy = tweetResult["legacy"];
+
+            string format = "ddd MMM dd HH:mm:ss zzzz yyyy";
+            if (DateTime.TryParseExact(
+                tweetLegacy["created_at"].Value<string>(),
+                format,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out DateTime createdAt))
+            {
+                return createdAt;
+            }
+
+            return null;
         }
     }
 }

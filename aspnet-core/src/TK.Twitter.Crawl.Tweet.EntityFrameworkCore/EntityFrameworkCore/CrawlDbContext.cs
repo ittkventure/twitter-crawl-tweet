@@ -162,6 +162,7 @@ public class CrawlDbContext :
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.UserName).HasMaxLength(512);
             b.Property(x => x.UserScreenName).HasMaxLength(512);
+            b.Property(x => x.UserScreenNameNormalize).HasMaxLength(512);
             b.Property(x => x.TweetId).HasMaxLength(40);
             b.Property(x => x.Lang).HasMaxLength(25);
             b.Property(x => x.InReplyToScreenName).HasMaxLength(512);

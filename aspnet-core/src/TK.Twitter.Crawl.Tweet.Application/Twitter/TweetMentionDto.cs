@@ -18,6 +18,7 @@ namespace TK.Twitter.Crawl.Twitter
         public string NormalizeUserName { get; set; }
         public string NormalizeUserScreenName { get; set; }
         public string TweetOwnerUserId { get; set; }
+        public string TweetOwnerUserScreenNameNormalize { get; set; }
         public string MediaMentioned { get; set; }
         public int NumberOfSponsoredTweets { get; set; }
         public List<string> HashTags { get; set; }

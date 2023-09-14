@@ -13,6 +13,8 @@ namespace TK.Twitter.Crawl.Entity
 
         public string UserScreenName { get; set; }
 
+        public string UserScreenNameNormalize { get; set; }
+
         public int? ViewsCount { get; set; }
 
         public DateTime? CreatedAt { get; set; }

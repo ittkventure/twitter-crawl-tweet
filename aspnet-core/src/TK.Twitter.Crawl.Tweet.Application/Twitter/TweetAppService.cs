@@ -41,7 +41,7 @@ namespace TK.Twitter.Crawl.Twitter
             _tweetHashTagRepository = tweetHashTagRepository;
         }
 
-        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText)
+        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserId)
         {
             if (pageNumber < 1)
             {
@@ -111,15 +111,19 @@ namespace TK.Twitter.Crawl.Twitter
                             TweetDescription = tweet.FullText,
                             NormalizeTweetDescription = tweet.NormalizeFullText,
                             TweetOwnerUserId = tweet.UserId,
+                            TweetOwnerUserScreenNameNormalize = tweet.UserScreenNameNormalize,
                             MediaMentioned = tweet.UserScreenName,
                             NumberOfSponsoredTweets = lastMentionUser.Count
                         };
 
             query = query.WhereIf(userStatus.IsNotEmpty(), x => x.UserStatus == userStatus);
             query = query.WhereIf(userType.IsNotEmpty(), x => x.UserType == userType);
+            query = query.WhereIf(ownerUserId.IsNotEmpty(), x => x.TweetOwnerUserId == ownerUserId);
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.NormalizeUserScreenName.Contains(searchText.ToLower())
-                                                                || x.NormalizeUserName.Contains(searchText.ToLower())
-                                                                || x.NormalizeTweetDescription.Contains(searchText.ToLower()));
+                                                                || x.NormalizeTweetDescription.Contains(searchText.ToLower())
+                                                                || x.TweetOwnerUserScreenNameNormalize.Contains(searchText.ToLower()));
+
+            
 
             var pr = new PagingResult<TweetMentionDto>();
             pr.TotalCount = await AsyncExecuter.CountAsync(query);

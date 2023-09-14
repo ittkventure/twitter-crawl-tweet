@@ -367,6 +367,7 @@ namespace TK.Twitter.Crawl.Jobs
             {
                 tweet.UserName = tweetUser["name"].ParseIfNotNull<string>();
                 tweet.UserScreenName = tweetUser["screen_name"].ParseIfNotNull<string>();
+                tweet.UserScreenNameNormalize = tweet.UserScreenName?.ToLower();
             }
 
             var tweetLegacy = tweetResult["legacy"];

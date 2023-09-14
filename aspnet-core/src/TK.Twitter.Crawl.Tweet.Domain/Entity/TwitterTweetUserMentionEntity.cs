@@ -11,6 +11,9 @@ namespace TK.Twitter.Crawl.Entity
         public string Name { get; set; }
 
         public string ScreenName { get; set; }
-    }
 
+        public string NormalizeScreenName { get; set; }
+
+        public string NormalizeName { get; set; }
+    }
 }

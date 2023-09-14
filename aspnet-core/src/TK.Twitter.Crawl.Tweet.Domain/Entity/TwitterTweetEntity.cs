@@ -29,6 +29,8 @@ namespace TK.Twitter.Crawl.Entity
 
         public string FullText { get; set; }
 
+        public string NormalizeFullText { get; set; }
+
         public bool IsQuoteStatus { get; set; }
 
         public string Lang { get; set; }

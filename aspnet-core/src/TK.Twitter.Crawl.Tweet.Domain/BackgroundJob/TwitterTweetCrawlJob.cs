@@ -390,6 +390,7 @@ namespace TK.Twitter.Crawl.Jobs
 
             tweet.IsQuoteStatus = tweetLegacy["is_quote_status"].Value<bool>();
             tweet.FullText = tweetLegacy["full_text"].Value<string>();
+            tweet.NormalizeFullText = tweet.FullText?.ToLower();
             tweet.Lang = tweetLegacy["lang"].Value<string>();
 
             if (tweetLegacy["in_reply_to_screen_name"] != null)
@@ -454,6 +455,8 @@ namespace TK.Twitter.Crawl.Jobs
                             UserId = id_str,
                             Name = name,
                             ScreenName = screen_name,
+                            NormalizeName = name.ToLower(),
+                            NormalizeScreenName = screen_name.ToLower()
                         });
                     }
                 }
@@ -480,6 +483,7 @@ namespace TK.Twitter.Crawl.Jobs
                         {
                             TweetId = tweetId,
                             Text = text,
+                            NormalizeText = text.ToLower(),
                         });
                     }
                 }

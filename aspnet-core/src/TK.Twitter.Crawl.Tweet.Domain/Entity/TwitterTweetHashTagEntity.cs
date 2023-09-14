@@ -7,6 +7,8 @@ namespace TK.Twitter.Crawl.Entity
         public string TweetId { get; set; }
 
         public string Text { get; set; }
+
+        public string NormalizeText { get; set; }
     }
 
 }

@@ -41,7 +41,7 @@ namespace TK.Twitter.Crawl.Twitter
             _tweetHashTagRepository = tweetHashTagRepository;
         }
 
-        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserId)
+        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName)
         {
             if (pageNumber < 1)
             {
@@ -66,15 +66,15 @@ namespace TK.Twitter.Crawl.Twitter
                 "bitmartexchange",
             };
 
-            var mentionUserIgnoreAmaWinnerQuery = from mt in mentionUserQuery
-                                                  join tweet in await _tweetRepository.GetQueryableAsync() on mt.TweetId equals tweet.TweetId
-                                                  where
-                                                  !hashTagQuery.Any(x => x.TweetId == mt.TweetId && x.NormalizeText == "ama" && tweet.NormalizeFullText.Contains("winner")) // bỏ các tag ama nhưng description lại có chữ winner
-                                                  && !ignoreScreenName.Contains(mt.ScreenName) // bỏ các tweet mention partner lớn để bú fame
-                                                  && mt.UserId == tweet.UserId // bỏ các tweet tự mention chính nó
-                                                  select mt;
+            var filterMentionQuery = from mt in mentionUserQuery
+                                     join tweet in await _tweetRepository.GetQueryableAsync() on mt.TweetId equals tweet.TweetId
+                                     where
+                                     !hashTagQuery.Any(x => x.TweetId == mt.TweetId && x.NormalizeText == "ama" && tweet.NormalizeFullText.Contains("winner")) // bỏ các tag ama nhưng description lại có chữ winner
+                                     && !ignoreScreenName.Contains(mt.ScreenName) // bỏ các tweet mention partner lớn để bú fame
+                                     && mt.UserId == tweet.UserId // bỏ các tweet tự mention chính nó
+                                     select mt;
 
-            var lastestMentionUserQuery = from g in mentionUserIgnoreAmaWinnerQuery.GroupBy(x => x.UserId)
+            var lastestMentionUserQuery = from g in filterMentionQuery.GroupBy(x => x.UserId)
                                           select new
                                           {
                                               UserId = g.Key,
@@ -84,7 +84,13 @@ namespace TK.Twitter.Crawl.Twitter
 
             lastestMentionUserQuery = lastestMentionUserQuery.Distinct();
 
-            var mentionUserIdQuery = mentionUserQuery.OrderByDescending(x => x.CreationTime).GroupBy(x => x.UserId).Select(x => x.Key);
+            var tweetQuery = from tweet in await _tweetRepository.GetQueryableAsync()
+                             join mention in mentionUserQuery.GroupBy(x => x.TweetId).Select(x => new { TweetId = x.Key, MentionCount = x.Count() }) on tweet.TweetId equals mention.TweetId
+                             select new
+                             {
+                                 tweet,
+                                 MentionCount = mention.MentionCount
+                             };
 
             var query = from mentionUser in mentionUserQuery
                         join lastMentionUser in lastestMentionUserQuery on mentionUser.UserId equals lastMentionUser.UserId
@@ -94,7 +100,7 @@ namespace TK.Twitter.Crawl.Twitter
                         join userStatusQ in await _tweetUserStatusRepository.GetQueryableAsync() on ut.UserId equals userStatusQ.UserId
                         into mentionUserUserStatusTemp
                         from us in mentionUserUserStatusTemp.DefaultIfEmpty()
-                        join tweet in await _tweetRepository.GetQueryableAsync() on mentionUser.TweetId equals tweet.TweetId
+                        join tweet in tweetQuery on mentionUser.TweetId equals tweet.tweet.TweetId
                         where mentionUser.CreationTime == lastMentionUser.CreationTime
                         select new TweetMentionDto()
                         {
@@ -106,24 +112,23 @@ namespace TK.Twitter.Crawl.Twitter
                             NormalizeUserName = mentionUser.NormalizeName,
                             UserType = ut.Type,
                             UserStatus = us.Status,
-                            LastestSponsoredDate = tweet.CreatedAt,
+                            LastestSponsoredDate = tweet.tweet.CreatedAt,
                             LastestSponsoredTweetUrl = "https://twitter.com/_/status/" + mentionUser.TweetId, // url k cần quan tâm đên username nên thay bằng _
-                            TweetDescription = tweet.FullText,
-                            NormalizeTweetDescription = tweet.NormalizeFullText,
-                            TweetOwnerUserId = tweet.UserId,
-                            TweetOwnerUserScreenNameNormalize = tweet.UserScreenNameNormalize,
-                            MediaMentioned = tweet.UserScreenName,
+                            TweetDescription = tweet.tweet.FullText,
+                            NormalizeTweetDescription = tweet.tweet.NormalizeFullText,
+                            TweetOwnerUserId = tweet.tweet.UserId,
+                            TweetOwnerUserScreenNameNormalize = tweet.tweet.UserScreenNameNormalize,
+                            DuplicateUrlCount = tweet.MentionCount,
+                            MediaMentioned = tweet.tweet.UserScreenName,
                             NumberOfSponsoredTweets = lastMentionUser.Count
                         };
 
             query = query.WhereIf(userStatus.IsNotEmpty(), x => x.UserStatus == userStatus);
             query = query.WhereIf(userType.IsNotEmpty(), x => x.UserType == userType);
-            query = query.WhereIf(ownerUserId.IsNotEmpty(), x => x.TweetOwnerUserId == ownerUserId);
+            query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => x.TweetOwnerUserScreenNameNormalize == ownerUserScreenName);
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.NormalizeUserScreenName.Contains(searchText.ToLower())
                                                                 || x.NormalizeTweetDescription.Contains(searchText.ToLower())
                                                                 || x.TweetOwnerUserScreenNameNormalize.Contains(searchText.ToLower()));
-
-            
 
             var pr = new PagingResult<TweetMentionDto>();
             pr.TotalCount = await AsyncExecuter.CountAsync(query);

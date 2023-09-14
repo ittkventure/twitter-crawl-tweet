@@ -390,8 +390,19 @@ namespace TK.Twitter.Crawl.Jobs
             tweet.RetweetCount = tweetLegacy["retweet_count"].Value<int>();
 
             tweet.IsQuoteStatus = tweetLegacy["is_quote_status"].Value<bool>();
-            tweet.FullText = tweetLegacy["full_text"].Value<string>();
+
+            var retweetdStatusResult = tweetLegacy["retweeted_status_result"];
+            if (retweetdStatusResult != null)
+            {
+                tweet.FullText = retweetdStatusResult["result"]?["legacy"]?["full_text"].Value<string>();
+            }
+            else
+            {
+                tweet.FullText = tweetLegacy["full_text"].Value<string>();
+            }
+
             tweet.NormalizeFullText = tweet.FullText?.ToLower();
+
             tweet.Lang = tweetLegacy["lang"].Value<string>();
 
             if (tweetLegacy["in_reply_to_screen_name"] != null)

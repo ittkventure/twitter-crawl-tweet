@@ -13,6 +13,7 @@ namespace TK.Twitter.Crawl.Twitter
         public string UserStatus { get; set; }
         public DateTime? LastestSponsoredDate { get; set; }
         public string LastestSponsoredTweetUrl { get; set; }
+        public int DuplicateUrlCount { get; set; }
         public string TweetDescription { get; set; }
         public string NormalizeTweetDescription { get; set; }
         public string NormalizeUserName { get; set; }

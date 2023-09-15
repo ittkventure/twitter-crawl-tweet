@@ -14,12 +14,23 @@ namespace TK.Twitter.Crawl.Twitter
             _backgroundJobManager = backgroundJobManager;
         }
 
-        public async Task<string> ExecuteFollowingCrawlJob([Required] string batchKey, [Required] string accountId)
+        public async Task<string> ExecuteTweetCrawlJob([Required] string batchKey, [Required] string accountId)
         {
             await _backgroundJobManager.EnqueueAsync(new TwitterTweetCrawlJobArg()
             {
                 BatchKey = batchKey,
                 TwitterAccountId = accountId
+            });
+
+            return "success";
+        }
+
+        public async Task<string> ExecuteTweetSingleCrawlJob([Required] string userId, [Required] string accountId)
+        {
+            await _backgroundJobManager.EnqueueAsync(new TwitterTweetSingleUserCrawlJobArg()
+            {
+                TwitterAccountId = accountId,
+                UserId = userId
             });
 
             return "success";

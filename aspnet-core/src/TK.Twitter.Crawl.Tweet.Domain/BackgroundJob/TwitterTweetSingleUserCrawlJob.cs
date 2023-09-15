@@ -20,16 +20,16 @@ using Volo.Abp.Uow;
 
 namespace TK.Twitter.Crawl.Jobs
 {
-    public class TwitterTweetCrawlJobArg
+    public class TwitterTweetSingleUserCrawlJobArg
     {
-        public string BatchKey { get; set; }
+        public string UserId { get; set; }
 
         public string TwitterAccountId { get; set; }
     }
 
-    public class TwitterTweetCrawlJob : AsyncBackgroundJob<TwitterTweetCrawlJobArg>, ITransientDependency
+    public class TwitterTweetSingleUserCrawlJob : AsyncBackgroundJob<TwitterTweetSingleUserCrawlJobArg>, ITransientDependency
     {
-        private const string LOG_PREFIX = "[TwitterTweetCrawlJob] ";
+        private const string LOG_PREFIX = "[TwitterTweetSingleUserCrawlJob] ";
         public const int BATCH_SIZE = 1;
 
         private readonly IBackgroundJobManager _backgroundJobManager;
@@ -47,7 +47,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly ITwitterAccountRepository _twitterAccountRepository;
         private readonly IDistributedLockProvider _distributedLockProvider;
 
-        public TwitterTweetCrawlJob(
+        public TwitterTweetSingleUserCrawlJob(
             IBackgroundJobManager backgroundJobManager,
             IRepository<TwitterTweetCrawlQueueEntity, long> twitterFollowingCrawlQueueRepository,
             IRepository<TwitterTweetCrawlRawEntity, long> twitterTweetCrawlRawRepository,
@@ -80,261 +80,226 @@ namespace TK.Twitter.Crawl.Jobs
         }
 
         [UnitOfWork(IsDisabled = true)]
-        public override async Task ExecuteAsync(TwitterTweetCrawlJobArg args)
+        public override async Task ExecuteAsync(TwitterTweetSingleUserCrawlJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"TwitterFollowingCrawlJob_{args.BatchKey}_{args.TwitterAccountId}"))
+            using var uow = _unitOfWorkManager.Begin();
+            try
             {
-                if (handle == null)
+                var asyncExecuter = _twitterTweetCrawlQueueRepository.AsyncExecuter;
+
+                var crawlAccount = await _twitterAccountRepository.FirstOrDefaultAsync(x => x.AccountId == args.TwitterAccountId);
+                if (crawlAccount == null)
                 {
-                    Logger.LogInformation(LOG_PREFIX + "Some process is running!!!");
-                    return;
+                    throw new BusinessException(CrawlDomainErrorCodes.NotFound, $"Crawl Account {args.TwitterAccountId} not found");
                 }
 
-                using var uow = _unitOfWorkManager.Begin();
+                var relationShips = new List<TwitterTweetCrawlTweetDapperEntity>();
+                
                 try
                 {
-                    var asyncExecuter = _twitterTweetCrawlQueueRepository.AsyncExecuter;
+                    var entries = new List<TwitterTweetCrawlRawEntity>();
+                    string messageGet = string.Empty;
+                    bool succeedGet = false;
+                    bool shouldStop = false;
+                    string cursor = null;
+                    string accountId = args.TwitterAccountId;
+                    int loop = 0;
 
-                    var queueQuery = from input in await _twitterTweetCrawlQueueRepository.GetQueryableAsync()
-                                     where input.Ended == false && input.BatchKey == args.BatchKey && input.TwitterAccountId == args.TwitterAccountId
-                                     select input;
-
-                    queueQuery = queueQuery.Take(BATCH_SIZE);
-
-                    var queues = await asyncExecuter.ToListAsync(queueQuery);
-                    if (queues.IsEmpty())
+                    while (true)
                     {
-                        return;
-                    }
+                        loop++;
+                        //if (loop == 3)
+                        //{
+                        //    succeedGet = true;
+                        //    messageGet = "Succeed";
+                        //    break;
+                        //}
 
-                    var crawlAccount = await _twitterAccountRepository.FirstOrDefaultAsync(x => x.AccountId == args.TwitterAccountId);
-                    if (crawlAccount == null)
-                    {
-                        throw new BusinessException(CrawlDomainErrorCodes.NotFound, $"Crawl Account {args.TwitterAccountId} not found");
-                    }
-
-                    foreach (var item in queues)
-                    {
-                        bool succeeded = false;
-                        item.ProcessedAttempt++;
-
+                        TwitterAPIGetTweetResponse response = null;
                         try
                         {
-                            var entries = new List<TwitterTweetCrawlRawEntity>();
-                            string messageGet = string.Empty;
-                            bool succeedGet = false;
-                            bool shouldStop = false;
-                            string cursor = null;
-                            string accountId = args.TwitterAccountId;
-                            int loop = 0;
-
-                            while (true)
+                            response = await _twitterAPITweetService.GetTweetAsync(args.UserId, accountId, cursor: cursor);
+                            if (response.RateLimit > 0 || response.TooManyRequest)
                             {
-                                loop++;
-                                if (loop == 3)
+                                var subtract = response.RateLimitResetAt.Value.Subtract(_clock.Now);
+                                if (response.RateLimitRemaining <= 1)
                                 {
-                                    succeedGet = true;
-                                    messageGet = "Succeed";
-                                    break;
-                                }
-
-                                TwitterAPIGetTweetResponse response = null;
-                                try
-                                {
-                                    response = await _twitterAPITweetService.GetTweetAsync(item.UserId, accountId, cursor: cursor);
-                                    if (response.RateLimit > 0 || response.TooManyRequest)
-                                    {
-                                        var subtract = response.RateLimitResetAt.Value.Subtract(_clock.Now);
-                                        if (response.RateLimitRemaining <= 1)
-                                        {
-                                            Logger.LogInformation(LOG_PREFIX + "Delay in " + subtract);
-                                            await Task.Delay(subtract);
-                                            response = await _twitterAPITweetService.GetTweetAsync(item.UserId, accountId, cursor: cursor);
-                                        }
-                                    }
-                                }
-                                catch (BusinessException ex)
-                                {
-                                    if (ex.Code == CrawlDomainErrorCodes.TwitterAuthorizationError)
-                                    {
-                                        // chỉ cho login lại 1 lần
-                                        response = await _twitterAPITweetService.GetTweetAsync(item.UserId, accountId, cursor: cursor);
-                                    }
-                                    else
-                                    {
-                                        succeedGet = false;
-                                        messageGet = ex.Message;
-                                        break;
-                                    }
-                                }
-
-                                var jsonContent = JObject.Parse(response.JsonText);
-
-                                if ((string)jsonContent["data"]["user"]["result"]["__typename"] == "UserUnavailable")
-                                {
-                                    succeedGet = false;
-                                    messageGet = "User Unavailable";
-                                    break;
-                                }
-
-                                var timelineAddEntryQuery = from jo in jsonContent["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"]
-                                                            where jo["type"].Value<string>() == "TimelineAddEntries"
-                                                            select jo;
-
-                                var timelineAddEntries = timelineAddEntryQuery.FirstOrDefault();
-                                if (timelineAddEntries == null)
-                                {
-                                    succeedGet = false;
-                                    messageGet = "Do not have Instructions type TimelineAddEntries";
-                                    break;
-                                }
-
-                                var tweetInPages = new List<TwitterTweetCrawlRawEntity>();
-                                foreach (var entry in timelineAddEntries["entries"])
-                                {
-                                    if (entry["entryId"].Value<string>().StartsWith("cursor-bottom"))
-                                    {
-                                        cursor = entry["content"]["value"].Value<string>();
-                                        continue;
-                                    }
-
-                                    if (!entry["entryId"].Value<string>().StartsWith("tweet"))
-                                    {
-                                        continue;
-                                    }
-
-                                    var content = entry["content"];
-                                    if (content["entryType"].Value<string>() != "TimelineTimelineItem")
-                                    {
-                                        continue;
-                                    }
-
-                                    var itemContent = content["itemContent"];
-                                    if (itemContent["itemType"].Value<string>() != "TimelineTweet")
-                                    {
-                                        continue;
-                                    }
-
-                                    var result_type = itemContent["tweet_results"]["result"]["__typename"].ParseIfNotNull<string>();
-                                    var tweetResult = itemContent["tweet_results"]["result"];
-
-                                    string tweetId;
-                                    if (result_type == "TweetWithVisibilityResults")
-                                    {
-                                        tweetId = tweetResult["tweet"]["rest_id"].ParseIfNotNull<string>();
-                                    }
-                                    else
-                                    {
-                                        tweetId = tweetResult["rest_id"].ParseIfNotNull<string>();
-                                    }
-
-                                    var createdAt = GetTweetCreatedAt(entry);
-                                    if (createdAt.HasValue && createdAt.Value < new DateTime(2023, 6, 1))
-                                    {
-                                        shouldStop = true;
-                                        break;
-                                    }
-
-                                    if (tweetInPages.Any(x => x.TweetId == tweetId))
-                                    {
-                                        continue;
-                                    }
-
-                                    tweetInPages.Add(new TwitterTweetCrawlRawEntity()
-                                    {
-                                        TweetId = tweetId,
-                                        JsonContent = JsonHelper.Stringify(entry)
-                                    });
-                                }
-
-                                if (tweetInPages.IsEmpty())
-                                {
-                                    succeedGet = true;
-                                    messageGet = "Succeed";
-                                    break;
-                                }
-
-                                entries.AddRange(tweetInPages);
-
-                                if (shouldStop)
-                                {
-                                    succeedGet = true;
-                                    messageGet = "Succeed";
-                                    break;
+                                    Logger.LogInformation(LOG_PREFIX + "Delay in " + subtract);
+                                    await Task.Delay(subtract);
+                                    response = await _twitterAPITweetService.GetTweetAsync(args.UserId, accountId, cursor: cursor);
                                 }
                             }
-
-                            if (!succeedGet)
+                        }
+                        catch (BusinessException ex)
+                        {
+                            if (ex.Code == CrawlDomainErrorCodes.TwitterAuthorizationError)
                             {
-                                item.Note = messageGet;
+                                // chỉ cho login lại 1 lần
+                                response = await _twitterAPITweetService.GetTweetAsync(args.UserId, accountId, cursor: cursor);
                             }
                             else
                             {
-                                if (entries.IsEmpty())
-                                {
-                                    item.Note = "This User has not any tweets yet!";
-                                    item.Ended = true;
-                                }
-                                else
-                                {
-                                    var tweetIds = entries.Select(x => x.TweetId);
-                                    var tweetsHasExisted = await _twitterTweetCrawlRawRepository.GetListAsync(x => tweetIds.Contains(x.TweetId));
-                                    var addedTweetIds = new List<string>();
-                                    int count = 0;
-                                    foreach (var data in entries)
-                                    {
-                                        count++;
-                                        if (tweetsHasExisted.Any(t => t.TweetId == data.TweetId))
-                                        {
-                                            continue;
-                                        }
+                                succeedGet = false;
+                                messageGet = ex.Message;
+                                break;
+                            }
+                        }
 
-                                        if (addedTweetIds.Contains(data.TweetId))
-                                        {
-                                            continue;
-                                        }
+                        var jsonContent = JObject.Parse(response.JsonText);
 
-                                        await _twitterTweetCrawlRawRepository.InsertAsync(new TwitterTweetCrawlRawEntity
-                                        {
-                                            TweetId = data.TweetId,
-                                            JsonContent = data.JsonContent
-                                        });
+                        if ((string)jsonContent["data"]["user"]["result"]["__typename"] == "UserUnavailable")
+                        {
+                            succeedGet = false;
+                            messageGet = "User Unavailable";
+                            break;
+                        }
 
-                                        await AddTweet(item.UserId, data.TweetId, data.JsonContent);
+                        var timelineAddEntryQuery = from jo in jsonContent["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"]
+                                                    where jo["type"].Value<string>() == "TimelineAddEntries"
+                                                    select jo;
 
-                                        addedTweetIds.Add(data.TweetId);
-                                    }
+                        var timelineAddEntries = timelineAddEntryQuery.FirstOrDefault();
+                        if (timelineAddEntries == null)
+                        {
+                            succeedGet = false;
+                            messageGet = "Do not have Instructions type TimelineAddEntries";
+                            break;
+                        }
 
-                                    succeeded = true;
-                                }
+                        var tweetInPages = new List<TwitterTweetCrawlRawEntity>();
+                        foreach (var entry in timelineAddEntries["entries"])
+                        {
+                            if (entry["entryId"].Value<string>().StartsWith("cursor-bottom"))
+                            {
+                                cursor = entry["content"]["value"].Value<string>();
+                                continue;
                             }
 
-                            await uow.SaveChangesAsync();
+                            if (!entry["entryId"].Value<string>().StartsWith("tweet"))
+                            {
+                                continue;
+                            }
+
+                            var content = entry["content"];
+                            if (content["entryType"].Value<string>() != "TimelineTimelineItem")
+                            {
+                                continue;
+                            }
+
+                            var itemContent = content["itemContent"];
+                            if (itemContent["itemType"].Value<string>() != "TimelineTweet")
+                            {
+                                continue;
+                            }
+
+                            var result_type = itemContent["tweet_results"]["result"]["__typename"].ParseIfNotNull<string>();
+                            var tweetResult = itemContent["tweet_results"]["result"];
+
+                            string tweetId;
+                            if (result_type == "TweetWithVisibilityResults")
+                            {
+                                tweetId = tweetResult["tweet"]["rest_id"].ParseIfNotNull<string>();
+                            }
+                            else
+                            {
+                                tweetId = tweetResult["rest_id"].ParseIfNotNull<string>();
+                            }
+
+                            var createdAt = GetTweetCreatedAt(entry);
+                            if (createdAt.HasValue && createdAt.Value < new DateTime(2023, 6, 1))
+                            {
+                                shouldStop = true;
+                                break;
+                            }
+
+                            if (tweetInPages.Any(x => x.TweetId == tweetId))
+                            {
+                                continue;
+                            }
+
+                            tweetInPages.Add(new TwitterTweetCrawlRawEntity()
+                            {
+                                TweetId = tweetId,
+                                JsonContent = JsonHelper.Stringify(entry)
+                            });
                         }
-                        catch (Exception ex)
+
+                        if (tweetInPages.IsEmpty())
                         {
-                            Logger.LogError(ex, LOG_PREFIX + "An error occurred while retrieving the following data from User " + item.UserId);
-                            item.Note = ex.Message;
-                            await uow.RollbackAsync();
+                            succeedGet = true;
+                            messageGet = "Succeed";
+                            break;
                         }
 
-                        item.UpdateProcessStatus(succeeded);
+                        entries.AddRange(tweetInPages);
 
-                        await _twitterTweetCrawlQueueRepository.UpdateAsync(item);
-                        await uow.SaveChangesAsync();
+                        if (shouldStop)
+                        {
+                            succeedGet = true;
+                            messageGet = "Succeed";
+                            break;
+                        }
+                    }
+
+                    if (!succeedGet)
+                    {
+                        throw new BusinessException("get failed");
+                    }
+                    else
+                    {
+                        if (entries.IsEmpty())
+                        {
+                            throw new BusinessException("This User has not any tweets yet!");
+                        }
+                        else
+                        {
+                            var tweetIds = entries.Select(x => x.TweetId);
+                            var tweetsHasExisted = await _twitterTweetCrawlRawRepository.GetListAsync(x => tweetIds.Contains(x.TweetId));
+                            var addedTweetIds = new List<string>();
+                            int count = 0;
+                            foreach (var data in entries)
+                            {
+                                count++;
+                                if (tweetsHasExisted.Any(t => t.TweetId == data.TweetId))
+                                {
+                                    continue;
+                                }
+
+                                if (addedTweetIds.Contains(data.TweetId))
+                                {
+                                    continue;
+                                }
+
+                                await _twitterTweetCrawlRawRepository.InsertAsync(new TwitterTweetCrawlRawEntity
+                                {
+                                    TweetId = data.TweetId,
+                                    JsonContent = data.JsonContent
+                                });
+
+                                await AddTweet(args.UserId, data.TweetId, data.JsonContent);
+
+                                addedTweetIds.Add(data.TweetId);
+                            }
+                        }
                     }
 
                     await uow.SaveChangesAsync();
-                    await uow.CompleteAsync();
                 }
                 catch (Exception ex)
                 {
+                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while retrieving the following data from User " + args.UserId);
                     await uow.RollbackAsync();
-                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while crawling twitter data");
                 }
-            }
 
-            await _backgroundJobManager.EnqueueAsync(args);
+
+                await uow.SaveChangesAsync();
+                await uow.CompleteAsync();
+            }
+            catch (Exception ex)
+            {
+                await uow.RollbackAsync();
+                Logger.LogError(ex, LOG_PREFIX + "An error occurred while crawling twitter data");
+            }
         }
 
         public async Task AddTweet(string userId, string tweetId, string jsonContent)

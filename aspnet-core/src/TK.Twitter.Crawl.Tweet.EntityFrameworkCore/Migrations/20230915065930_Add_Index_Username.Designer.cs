@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TK.Twitter.Crawl.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace TK.Twitter.Crawl.Migrations
 {
     [DbContext(typeof(CrawlDbContext))]
-    partial class CrawlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230915065930_Add_Index_Username")]
+    partial class AddIndexUsername
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -505,8 +508,6 @@ namespace TK.Twitter.Crawl.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
                     b.HasIndex("TweetId");
 
                     b.HasIndex("UserId");
@@ -566,9 +567,9 @@ namespace TK.Twitter.Crawl.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizeText");
-
                     b.HasIndex("TweetId");
+
+                    b.HasIndex("TweetId", "NormalizeText");
 
                     b.ToTable("twitter_tweet_hash_tag", (string)null);
                 });

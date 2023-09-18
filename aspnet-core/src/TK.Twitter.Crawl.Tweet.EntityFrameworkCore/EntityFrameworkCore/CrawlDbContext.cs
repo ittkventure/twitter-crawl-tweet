@@ -171,6 +171,7 @@ public class CrawlDbContext :
             b.Property(x => x.ConversationId).HasMaxLength(40);
             b.HasIndex(x => new { x.UserId });
             b.HasIndex(x => new { x.TweetId });
+            b.HasIndex(x => new { x.CreatedAt });
         });
 
         builder.Entity<TwitterTweetCrawlRawEntity>(b =>
@@ -191,7 +192,7 @@ public class CrawlDbContext :
             b.Property(x => x.Text).HasMaxLength(512);
             b.Property(x => x.NormalizeText).HasMaxLength(512);
             b.HasIndex(x => new { x.TweetId });
-            b.HasIndex(x => new { x.TweetId, x.NormalizeText });
+            b.HasIndex(x => new { x.NormalizeText });
         });
 
         builder.Entity<TwitterTweetMediaEntity>(b =>

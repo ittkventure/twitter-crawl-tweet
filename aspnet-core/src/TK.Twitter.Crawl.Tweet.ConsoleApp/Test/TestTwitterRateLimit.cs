@@ -17,7 +17,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
         public async Task Test()
         {
-            var response = await _twitterAPIUserService.GetFollowingAsync("1476074281763233794", "Account_3");            
+            var response = await _twitterAPIUserService.GetFollowingAsync("1476074281763233794", "Account_3");
             var response1 = await _twitterAPIUserService.GetUserByIdsAsync(new List<string> { "1523751438" }, "Account_2");
         }
     }

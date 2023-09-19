@@ -69,9 +69,13 @@ namespace TK.Twitter.Crawl.Jobs
                 var influencers = await _twitterInfluencerRepository.AsyncExecuter.ToListAsync(
 
                     from i in await _twitterInfluencerRepository.GetQueryableAsync()
+
+                    //where i.Tags.Contains("audit") || i.Tags.Contains("cex")
+
                     select new
                     {
-                        i.UserId
+                        i.UserId,
+                        i.Tags,
                     }
                     );
 
@@ -95,6 +99,7 @@ namespace TK.Twitter.Crawl.Jobs
                         UserId = influencer.UserId,
                         Ended = false,
                         BatchKey = batchKey,
+                        Tags = influencer.Tags
                     };
 
                     var accountId = crawlAccounts[currentAccountIdx].AccountId;

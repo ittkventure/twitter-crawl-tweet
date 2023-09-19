@@ -24,16 +24,5 @@ namespace TK.Twitter.Crawl.Twitter
 
             return "success";
         }
-
-        public async Task<string> ExecuteTweetSingleCrawlJob([Required] string userId, [Required] string accountId)
-        {
-            await _backgroundJobManager.EnqueueAsync(new TwitterTweetSingleUserCrawlJobArg()
-            {
-                TwitterAccountId = accountId,
-                UserId = userId
-            });
-
-            return "success";
-        }
     }
 }

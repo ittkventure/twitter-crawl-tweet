@@ -15,5 +15,7 @@ namespace TK.Twitter.Crawl.Entity
         /// </summary>
         public bool IsProtected { get; set; }
 
+        public string Tags { get; set; }
+
     }
 }

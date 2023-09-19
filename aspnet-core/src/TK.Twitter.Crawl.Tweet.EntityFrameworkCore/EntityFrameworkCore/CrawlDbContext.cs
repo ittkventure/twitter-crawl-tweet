@@ -117,6 +117,7 @@ public class CrawlDbContext :
 
             b.Property(x => x.Name).HasMaxLength(512);
             b.Property(x => x.ScreenName).HasMaxLength(512);
+            b.Property(x => x.Tags).HasMaxLength(512);
             b.Property(x => x.UserId).HasMaxLength(40);
 
             b.HasIndex(x => x.UserId);
@@ -142,6 +143,7 @@ public class CrawlDbContext :
             b.Property(x => x.TwitterAccountId).HasMaxLength(40);
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.CurrentCursor).HasMaxLength(64);
+            b.Property(x => x.CurrentCursor).HasMaxLength(512);
             b.HasIndex(x => new { x.BatchKey, x.UserId, x.Ended, x.TwitterAccountId });
         });
 
@@ -276,6 +278,7 @@ public class CrawlDbContext :
             b.ToTable("twitter_user_signal");
             b.ConfigureByConvention();
 
+            b.Property(x => x.TweetId).HasMaxLength(40);
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.Signal).HasMaxLength(128);
             b.HasIndex(x => new { x.UserId });

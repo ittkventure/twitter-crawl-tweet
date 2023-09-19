@@ -49,6 +49,8 @@ namespace TK.Twitter.Crawl.Entity
 
         public string CurrentCursor { get; set; }
 
+        public string Tags { get; set; }
+
         public void UpdateProcessStatus(bool successed)
         {
             Successed = successed;

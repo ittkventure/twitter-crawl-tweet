@@ -154,7 +154,18 @@ namespace TK.Twitter.Crawl.Twitter
             //            q.NumberOfSponsoredTweets,                        
             //        };
 
-            query = query.WhereIf(userStatus.IsNotEmpty(), x => x.Status == userStatus);
+            if (userStatus.IsNotEmpty())
+            {
+                if (userStatus == "New")
+                {
+                    query = query.Where(x => x.Status == userStatus || x.Status == null);
+                }
+                else
+                {
+                    query = query.Where(x => x.Status == userStatus);
+                }
+            }
+
             query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
 
             query = query.OrderByDescending(x => x.mention_main.TweetCreatedAt);
@@ -162,6 +173,9 @@ namespace TK.Twitter.Crawl.Twitter
             query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => tweetWithMentionCountQuery.Any(x => x.tweet.UserScreenNameNormalize == ownerUserScreenName));
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())
                                                                 || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));
+
+            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
+            query = query.WhereIf(signal.IsNotEmpty(), x => signalQuery.Any(s => s.Signal == signal && x.mention_main.UserId == s.UserId));
 
             var pr = new PagingResult<TweetMentionDto>();
             pr.TotalCount = await AsyncExecuter.CountAsync(query);

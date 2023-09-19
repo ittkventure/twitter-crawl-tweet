@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
@@ -41,6 +42,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<TwitterTweetHashTagEntity, long> _twitterTweetHashTagRepository;
         private readonly IRepository<TwitterTweetUrlEntity, long> _twitterTweetUrlRepository;
         private readonly IRepository<TwitterTweetSymbolEntity, long> _twitterTweetSymbolRepository;
+        private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly TwitterAPITweetService _twitterAPITweetService;
@@ -57,6 +59,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<TwitterTweetHashTagEntity, long> twitterTweetHashTagRepository,
             IRepository<TwitterTweetUrlEntity, long> twitterTweetUrlRepository,
             IRepository<TwitterTweetSymbolEntity, long> twitterTweetSymbolRepository,
+            IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
@@ -72,6 +75,7 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterTweetHashTagRepository = twitterTweetHashTagRepository;
             _twitterTweetUrlRepository = twitterTweetUrlRepository;
             _twitterTweetSymbolRepository = twitterTweetSymbolRepository;
+            _twitterUserSignalRepository = twitterUserSignalRepository;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _twitterAPITweetService = twitterAPITweetService;
@@ -300,7 +304,7 @@ namespace TK.Twitter.Crawl.Jobs
                                             JsonContent = data.JsonContent
                                         });
 
-                                        await AddTweet(item.UserId, data.TweetId, data.JsonContent);
+                                        await AddTweet(item.UserId, data.TweetId, data.JsonContent, item.Tags);
 
                                         addedTweetIds.Add(data.TweetId);
                                     }
@@ -337,7 +341,7 @@ namespace TK.Twitter.Crawl.Jobs
             await _backgroundJobManager.EnqueueAsync(args);
         }
 
-        public async Task AddTweet(string userId, string tweetId, string jsonContent)
+        public async Task AddTweet(string userId, string tweetId, string jsonContent, string kolTags)
         {
             var entry = JObject.Parse(jsonContent);
             var content = entry["content"];
@@ -392,7 +396,14 @@ namespace TK.Twitter.Crawl.Jobs
             var retweetdStatusResult = tweetLegacy["retweeted_status_result"];
             if (retweetdStatusResult != null)
             {
-                tweet.FullText = retweetdStatusResult["result"]?["legacy"]?["full_text"].Value<string>();
+                if (retweetdStatusResult["result"]?["__typename"].ParseIfNotNull<string>() == "TweetWithVisibilityResults")
+                {
+                    tweet.FullText = retweetdStatusResult["result"]?["tweet"]?["legacy"]?["full_text"].Value<string>();
+                }
+                else
+                {
+                    tweet.FullText = retweetdStatusResult["result"]?["legacy"]?["full_text"].Value<string>();
+                }
             }
             else
             {
@@ -451,6 +462,7 @@ namespace TK.Twitter.Crawl.Jobs
                     }
                 }
 
+                var mentions = new List<TwitterTweetUserMentionEntity>();
                 if (tweetLegacy["entities"]["user_mentions"] != null)
                 {
                     foreach (var item in tweetLegacy["entities"]["user_mentions"])
@@ -459,7 +471,7 @@ namespace TK.Twitter.Crawl.Jobs
                         var name = item["name"].ParseIfNotNull<string>();
                         var screen_name = item["screen_name"].ParseIfNotNull<string>();
 
-                        await _twitterTweetUserMentionRepository.InsertAsync(new TwitterTweetUserMentionEntity()
+                        mentions.Add(new TwitterTweetUserMentionEntity()
                         {
                             TweetId = tweetId,
                             UserId = id_str,
@@ -467,8 +479,9 @@ namespace TK.Twitter.Crawl.Jobs
                             ScreenName = screen_name,
                             NormalizeName = name.ToLower(),
                             NormalizeScreenName = screen_name.ToLower(),
-                            TweetCreatedAt= tweet.CreatedAt
+                            TweetCreatedAt = tweet.CreatedAt
                         });
+
                     }
                 }
 
@@ -485,17 +498,19 @@ namespace TK.Twitter.Crawl.Jobs
                     }
                 }
 
+                var tags = new List<TwitterTweetHashTagEntity>();
                 if (tweetLegacy["entities"]["hashtags"] != null)
                 {
                     foreach (var item in tweetLegacy["entities"]["hashtags"])
                     {
                         var text = item["text"].ParseIfNotNull<string>();
-                        await _twitterTweetHashTagRepository.InsertAsync(new TwitterTweetHashTagEntity()
+                        tags.Add(new TwitterTweetHashTagEntity()
                         {
                             TweetId = tweetId,
                             Text = text,
                             NormalizeText = text.ToLower(),
                         });
+
                     }
                 }
 
@@ -517,7 +532,135 @@ namespace TK.Twitter.Crawl.Jobs
 
                     }
                 }
+
+                if (tags.IsNotEmpty())
+                {
+                    await _twitterTweetHashTagRepository.InsertManyAsync(tags);
+                }
+
+                if (mentions.IsNotEmpty())
+                {
+                    await _twitterTweetUserMentionRepository.InsertManyAsync(mentions);
+
+                    foreach (var item in mentions)
+                    {
+                        var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
+                        if (signals.IsNotEmpty())
+                        {
+                            foreach (var signal in signals)
+                            {
+                                await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
+                                {
+                                    UserId = item.UserId,
+                                    TweetId = tweet.TweetId,
+                                    Signal = signal,
+                                });
+                            }
+                        }
+                    }
+                }
+
+
             }
+        }
+
+        public static IEnumerable<string> GetSignals(string kolUserId, string tweetDescription, string kolTags, IEnumerable<string> hashTags)
+        {
+            const string LISTING_CEX = "LISTING_CEX";
+            const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
+            const string JUST_AUDITED = "JUST_AUDITED";
+
+            if (tweetDescription == null)
+            {
+                tweetDescription = string.Empty;
+            }
+
+            List<string> signals = new();
+            if (kolTags.IsNotEmpty())
+            {
+                if (kolTags.Contains("cex"))
+                {
+                    bool check;
+                    switch (kolUserId)
+                    {
+                        case "978566222282444800": // MEXC_Official
+                            check = tweetDescription.Contains("deposit") && tweetDescription.Contains("trading");
+                            break;
+                        case "912539725071777792": // gate_io
+                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("trading");
+                            break;
+                        case "1098881129057112064": // bitgetglobal
+                        case "999947328621395968": // Bybit_Official
+                        case "937166242208763904": // BitMartExchange
+                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("deposit");
+                            break;
+                        case "910110294625492992": // kucoincom
+                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("new");
+                            break;
+                        case "957221394009354245": // bitforexcom
+                            check = hashTags.Contains("newlistings");
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(LISTING_CEX);
+                    }
+                }
+
+                if (kolTags.Contains("audit"))
+                {
+                    bool check;
+                    switch (kolUserId)
+                    {
+                        case "993673575230996480": // certik
+                        case "1571404564540047361": // securewiseAudit
+                        case "1390840374": // TechRightio
+                            check = tweetDescription.Contains("complete") && tweetDescription.Contains("audit");
+                            break;
+                        case "1478527011140214784": // contractwolf_io
+                            check = tweetDescription.Contains("audit") && tweetDescription.Contains("report");
+                            break;
+                        case "1370160171822018560": // AssureDefi
+                            check = tweetDescription.Contains("assured");
+                            break;
+                        case "1496534305891311622": // CoinsultAudits
+                        case "1461394993537589248": // VB_Audit
+                        case "1398253738905714690": // SolidProof_io
+                            check = tweetDescription.Contains("audit") && tweetDescription.Contains("complete");
+                            break;
+                        case "898528774303735808": // hackenclub
+                            check = tweetDescription.Contains("audit") && (tweetDescription.Contains("complete") || tweetDescription.Contains("successfully"));
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(JUST_AUDITED);
+                    }
+                }
+            }
+            else
+            {
+                if (
+                    (hashTags.Contains("ama") && !tweetDescription.Contains("winner"))
+                    || hashTags.Contains("sponsor")
+                    || hashTags.Contains("sponsored")
+                    || hashTags.Contains("ad")
+                    || hashTags.Contains("ads")
+                    )
+                {
+                    signals.Add(SPONSORED_TWEETS);
+                }
+            }
+
+            return signals.Distinct();
         }
 
         public DateTime? GetTweetCreatedAt(JToken entry)

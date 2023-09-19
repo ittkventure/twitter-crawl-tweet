@@ -43,7 +43,8 @@ public class ConsoleAppHostedService : IHostedService
 
             await application
                 .ServiceProvider
-                .GetRequiredService<ExportTweetReport>().Run();
+                .GetRequiredService<TestReRunImportSignalData>().Test();
+                //.GetRequiredService<ExportTweetReport>().Run();
                 //.GetRequiredService<TestTwitterGetTweet>().Test();
             await uow.CompleteAsync();
 

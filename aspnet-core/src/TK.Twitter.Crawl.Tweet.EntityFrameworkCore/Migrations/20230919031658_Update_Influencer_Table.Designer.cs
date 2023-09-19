@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TK.Twitter.Crawl.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace TK.Twitter.Crawl.Migrations
 {
     [DbContext(typeof(CrawlDbContext))]
-    partial class CrawlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230919031658_Update_Influencer_Table")]
+    partial class UpdateInfluencerTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -287,8 +290,8 @@ namespace TK.Twitter.Crawl.Migrations
                         .HasColumnName("CreatorId");
 
                     b.Property<string>("CurrentCursor")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<Guid?>("DeleterId")
                         .HasColumnType("uuid")
@@ -326,9 +329,6 @@ namespace TK.Twitter.Crawl.Migrations
 
                     b.Property<bool>("Successed")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("Tags")
-                        .HasColumnType("text");
 
                     b.Property<string>("TwitterAccountId")
                         .HasMaxLength(40)
@@ -885,10 +885,6 @@ namespace TK.Twitter.Crawl.Migrations
                     b.Property<string>("Signal")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
-
-                    b.Property<string>("TweetId")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("UserId")
                         .HasMaxLength(40)

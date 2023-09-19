@@ -80,10 +80,10 @@ namespace TK.Twitter.Crawl.Twitter
                                           into hashTag
                                           from ht in hashTag.DefaultIfEmpty()
                                           where (ht.NormalizeText == "ama" && !tweet.NormalizeFullText.Contains("winner"))
-                                                 || ht.NormalizeText.Contains("sponsor")
-                                                 || ht.NormalizeText.Contains("sponsored")
-                                                 || ht.NormalizeText.Contains("ad")
-                                                 || ht.NormalizeText.Contains("ads")
+                                                 || ht.NormalizeText == "sponsor"
+                                                 || ht.NormalizeText == "sponsored"
+                                                 || ht.NormalizeText == "ad"
+                                                 || ht.NormalizeText == "ads"
 
                                           && mention.UserId != "-1"
                                           && mention.UserId != tweet.UserId
@@ -147,7 +147,7 @@ namespace TK.Twitter.Crawl.Twitter
             query = query.WhereIf(userStatus.IsNotEmpty(), x => x.Status == userStatus);
             query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
 
-            query = query.OrderByDescending(x => x.mention_main.CreationTime);
+            query = query.OrderByDescending(x => x.mention_main.TweetCreatedAt);
 
             query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => tweetWithMentionCountQuery.Any(x => x.tweet.UserScreenNameNormalize == ownerUserScreenName));
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())

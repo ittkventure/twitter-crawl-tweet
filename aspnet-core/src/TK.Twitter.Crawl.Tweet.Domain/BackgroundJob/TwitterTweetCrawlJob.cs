@@ -466,7 +466,8 @@ namespace TK.Twitter.Crawl.Jobs
                             Name = name,
                             ScreenName = screen_name,
                             NormalizeName = name.ToLower(),
-                            NormalizeScreenName = screen_name.ToLower()
+                            NormalizeScreenName = screen_name.ToLower(),
+                            TweetCreatedAt= tweet.CreatedAt
                         });
                     }
                 }

@@ -69,13 +69,16 @@ public class CrawlDbContext :
 
     public DbSet<TwitterTweetCrawlBatchEntity> TwitterTweetCrawlBatchEntities { get; set; }
     public DbSet<TwitterTweetCrawlQueueEntity> TwitterTweetCrawlQueueEntities { get; set; }
+
     public DbSet<TwitterInfluencerEntity> TwitterInfluencerEntities { get; set; }
+
     public DbSet<TwitterTweetEntity> TwitterTweetEntities { get; set; }
     public DbSet<TwitterTweetHashTagEntity> TwitterTweetHashTagEntities { get; set; }
     public DbSet<TwitterTweetMediaEntity> TwitterTweetMediaEntities { get; set; }
     public DbSet<TwitterTweetUserMentionEntity> TwitterTweetUserMentionEntities { get; set; }
     public DbSet<TwitterUserTypeEntity> TwitterUserTypeEntities { get; set; }
     public DbSet<TwitterUserStatusEntity> TwitterUserStatusEntities { get; set; }
+    public DbSet<TwitterUserSignalEntity> TwitterUserSignalEntities { get; set; }
     public DbSet<TwitterTweetUrlEntity> TwitterTweetUrlEntities { get; set; }
     public DbSet<TwitterTweetSymbolEntity> TwitterTweetSymbolEntities { get; set; }
     public DbSet<TwitterTweetCrawlRawEntity> TwitterTweetCrawlTweetRawEntities { get; set; }
@@ -266,6 +269,17 @@ public class CrawlDbContext :
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.Status).HasMaxLength(128);
             b.HasIndex(x => new { x.UserId });
+        });
+
+        builder.Entity<TwitterUserSignalEntity>(b =>
+        {
+            b.ToTable("twitter_user_signal");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.Signal).HasMaxLength(128);
+            b.HasIndex(x => new { x.UserId });
+            b.HasIndex(x => new { x.Signal });
         });
 
     }

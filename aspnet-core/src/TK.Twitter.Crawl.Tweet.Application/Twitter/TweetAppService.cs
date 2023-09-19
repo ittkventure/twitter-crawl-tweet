@@ -79,7 +79,12 @@ namespace TK.Twitter.Crawl.Twitter
                                           join hashTagOriginal in hashTagQuery on tweet.TweetId equals hashTagOriginal.TweetId
                                           into hashTag
                                           from ht in hashTag.DefaultIfEmpty()
-                                          where (ht.Text != "ama" && !tweet.NormalizeFullText.Contains("winner"))
+                                          where (ht.NormalizeText == "ama" && !tweet.NormalizeFullText.Contains("winner"))
+                                                 || ht.NormalizeText.Contains("sponsor")
+                                                 || ht.NormalizeText.Contains("sponsored")
+                                                 || ht.NormalizeText.Contains("ad")
+                                                 || ht.NormalizeText.Contains("ads")
+
                                           && mention.UserId != "-1"
                                           && mention.UserId != tweet.UserId
                                           && !ignoreScreenName.Contains(mention.NormalizeScreenName)
@@ -91,7 +96,7 @@ namespace TK.Twitter.Crawl.Twitter
                                       ).GroupBy(x => x.mention.UserId).Select(mt => new
                                       {
                                           UserId = mt.Key,
-                                          MaxCreationTime = mt.Max(x => x.mention.CreationTime),
+                                          MaxTweetCreatedAt = mt.Max(x => x.mention.TweetCreatedAt),
                                           NumberOfSponsoredTweets = mt.Count(),
                                       });
 
@@ -105,7 +110,7 @@ namespace TK.Twitter.Crawl.Twitter
                                              };
 
             var query = from mention_main in mentionQuery
-                        join mention_filter in mentionWithFilterQuery on mention_main.CreationTime equals mention_filter.MaxCreationTime
+                        join mention_filter in mentionWithFilterQuery on mention_main.TweetCreatedAt equals mention_filter.MaxTweetCreatedAt
 
                         join user_type_origin in await _tweetUserTypeRepository.GetQueryableAsync() on mention_main.UserId equals user_type_origin.UserId
                         into user_type_temp
@@ -143,7 +148,7 @@ namespace TK.Twitter.Crawl.Twitter
             query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
 
             query = query.OrderByDescending(x => x.mention_main.CreationTime);
-            
+
             query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => tweetWithMentionCountQuery.Any(x => x.tweet.UserScreenNameNormalize == ownerUserScreenName));
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())
                                                                 || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));

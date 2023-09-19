@@ -1,4 +1,5 @@
-﻿using Volo.Abp.Domain.Entities.Auditing;
+﻿using System;
+using Volo.Abp.Domain.Entities.Auditing;
 
 namespace TK.Twitter.Crawl.Entity
 {
@@ -15,5 +16,7 @@ namespace TK.Twitter.Crawl.Entity
         public string NormalizeScreenName { get; set; }
 
         public string NormalizeName { get; set; }
+
+        public DateTime? TweetCreatedAt { get; set; }
     }
 }

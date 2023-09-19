@@ -23,6 +23,7 @@ namespace TK.Twitter.Crawl.Twitter
         private readonly IRepository<TwitterTweetSymbolEntity, long> _tweetSymbolRepository;
         private readonly IRepository<TwitterTweetMediaEntity, long> _tweetMediaRepository;
         private readonly IRepository<TwitterTweetHashTagEntity, long> _tweetHashTagRepository;
+        private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly ITwitterTweetMentionDapperRepository _twitterTweetMentionDapperRepository;
 
         public TweetAppService(
@@ -34,6 +35,7 @@ namespace TK.Twitter.Crawl.Twitter
             IRepository<TwitterTweetSymbolEntity, long> tweetSymbolRepository,
             IRepository<TwitterTweetMediaEntity, long> tweetMediaRepository,
             IRepository<TwitterTweetHashTagEntity, long> tweetHashTagRepository,
+            IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository)
         {
             _tweetRepository = tweetRepository;
@@ -44,10 +46,18 @@ namespace TK.Twitter.Crawl.Twitter
             _tweetSymbolRepository = tweetSymbolRepository;
             _tweetMediaRepository = tweetMediaRepository;
             _tweetHashTagRepository = tweetHashTagRepository;
+            _twitterUserSignalRepository = twitterUserSignalRepository;
             _twitterTweetMentionDapperRepository = twitterTweetMentionDapperRepository;
         }
 
-        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName)
+        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(
+            int pageNumber,
+            int pageSize,
+            string userStatus,
+            string userType,
+            string searchText,
+            string ownerUserScreenName,
+            string signal)
         {
             if (pageNumber < 1)
             {
@@ -79,11 +89,11 @@ namespace TK.Twitter.Crawl.Twitter
                                           join hashTagOriginal in hashTagQuery on tweet.TweetId equals hashTagOriginal.TweetId
                                           into hashTag
                                           from ht in hashTag.DefaultIfEmpty()
-                                          where (ht.NormalizeText == "ama" && !tweet.NormalizeFullText.Contains("winner"))
+                                          where ((ht.NormalizeText == "ama" && !tweet.NormalizeFullText.Contains("winner"))
                                                  || ht.NormalizeText == "sponsor"
                                                  || ht.NormalizeText == "sponsored"
                                                  || ht.NormalizeText == "ad"
-                                                 || ht.NormalizeText == "ads"
+                                                 || ht.NormalizeText == "ads")
 
                                           && mention.UserId != "-1"
                                           && mention.UserId != tweet.UserId
@@ -175,6 +185,7 @@ namespace TK.Twitter.Crawl.Twitter
 
             var tags = await _tweetHashTagRepository.GetListAsync(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.TweetId));
             var lastestTweets = await AsyncExecuter.ToListAsync(tweetWithMentionCountQuery.Where(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.tweet.TweetId)));
+            var signals = await _twitterUserSignalRepository.GetListAsync(x => pr.Items.Select(x => x.UserId).Contains(x.UserId));
 
             foreach (var item in pr.Items)
             {
@@ -194,6 +205,9 @@ namespace TK.Twitter.Crawl.Twitter
                 item.DuplicateUrlCount = tweet?.MentionCount;
 
                 item.LastestSponsoredTweetUrl = "https://twitter.com/_/status/" + item.LastestTweetId; // url k cần quan tâm đên username nên thay bằng _
+
+                var itemSignals = signals.Where(x => x.UserId == item.UserId);
+                item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
             }
 
             return pr;
@@ -351,40 +365,6 @@ namespace TK.Twitter.Crawl.Twitter
             }
 
             return "success";
-        }
-
-        [Obsolete("Hàm cũ dùng để tham khảo")]
-        private async Task<PagingResult<TweetMentionDto>> GetMentionListAsync_bak(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName)
-        {
-            if (pageNumber < 1)
-            {
-                pageNumber = 1;
-            }
-
-            if (pageSize <= 0)
-            {
-                pageSize = 50;
-            }
-
-            var pr = await _twitterTweetMentionDapperRepository.GetMentionListAsync(pageNumber, pageSize, userStatus, userType, searchText, ownerUserScreenName);
-            if (pr.TotalCount == 0)
-            {
-                return pr;
-            }
-
-            var tags = await _tweetHashTagRepository.GetListAsync(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.TweetId));
-            foreach (var item in pr.Items)
-            {
-                var itemTags = tags.Where(x => x.TweetId == item.LastestTweetId);
-                item.HashTags = itemTags.Select(x => x.Text).Distinct().ToList();
-
-                if (item.UserStatus.IsEmpty())
-                {
-                    item.UserStatus = "New";
-                }
-            }
-
-            return pr;
         }
     }
 }

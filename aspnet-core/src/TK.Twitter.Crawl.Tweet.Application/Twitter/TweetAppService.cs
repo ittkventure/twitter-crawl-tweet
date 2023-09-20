@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AutoMapper.Internal.Mappers;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -72,32 +73,12 @@ namespace TK.Twitter.Crawl.Twitter
             var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
             var hashTagQuery = await _tweetHashTagRepository.GetQueryableAsync();
             var tweetQuery = await _tweetRepository.GetQueryableAsync();
-
-            var ignoreScreenName = new List<string>()
-            {
-                "binance",
-                "coinbase",
-                "bnbchain",
-                "epicgames",
-                "bitfinex",
-                "bitmartexchange",
-            };
+            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
 
             var mentionWithFilterQuery = (
                                           from mention in mentionQuery
-                                          join tweet in tweetQuery on mention.TweetId equals tweet.TweetId
-                                          join hashTagOriginal in hashTagQuery on tweet.TweetId equals hashTagOriginal.TweetId
-                                          into hashTag
-                                          from ht in hashTag.DefaultIfEmpty()
-                                          where ((ht.NormalizeText == "ama" && !tweet.NormalizeFullText.Contains("winner"))
-                                                 || ht.NormalizeText == "sponsor"
-                                                 || ht.NormalizeText == "sponsored"
-                                                 || ht.NormalizeText == "ad"
-                                                 || ht.NormalizeText == "ads")
-
-                                          && mention.UserId != "-1"
-                                          && mention.UserId != tweet.UserId
-                                          && !ignoreScreenName.Contains(mention.NormalizeScreenName)
+                                          where signalQuery.Any(x => x.TweetId == mention.TweetId && x.UserId == mention.UserId)
+                                          && tweetQuery.Any(tweet => tweet.TweetId == mention.TweetId)
                                           select new
                                           {
                                               mention,
@@ -107,7 +88,6 @@ namespace TK.Twitter.Crawl.Twitter
                                       {
                                           UserId = mt.Key,
                                           MaxTweetCreatedAt = mt.Max(x => x.mention.TweetCreatedAt),
-                                          NumberOfSponsoredTweets = mt.Count(),
                                       });
 
 
@@ -137,35 +117,9 @@ namespace TK.Twitter.Crawl.Twitter
                             mention_main,
                             user_status.Status,
                             user_type.Type,
-                            mention_filter.NumberOfSponsoredTweets,
                         };
 
-            //query = from q in query
-            //        join last_tweet in tweetWithMentionCountQuery on q.mention_main.TweetId equals last_tweet.tweet.TweetId
-
-            //        where last_tweet.tweet.CreatedAt != null
-            //        orderby last_tweet.tweet.CreatedAt descending
-
-            //        select new
-            //        {
-            //            q.mention_main,
-            //            q.Status,
-            //            q.Type,
-            //            q.NumberOfSponsoredTweets,                        
-            //        };
-
-            if (userStatus.IsNotEmpty())
-            {
-                if (userStatus == "New")
-                {
-                    query = query.Where(x => x.Status == userStatus || x.Status == null);
-                }
-                else
-                {
-                    query = query.Where(x => x.Status == userStatus);
-                }
-            }
-
+            query = query.WhereIf(userStatus.IsNotEmpty(), x => x.Status == userStatus);
             query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
 
             query = query.OrderByDescending(x => x.mention_main.TweetCreatedAt);
@@ -174,7 +128,6 @@ namespace TK.Twitter.Crawl.Twitter
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())
                                                                 || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));
 
-            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
             query = query.WhereIf(signal.IsNotEmpty(), x => signalQuery.Any(s => s.Signal == signal && x.mention_main.UserId == s.UserId));
 
             var pr = new PagingResult<TweetMentionDto>();
@@ -194,7 +147,6 @@ namespace TK.Twitter.Crawl.Twitter
                 UserScreenName = q.mention_main.ScreenName,
                 UserType = q.Type,
                 UserStatus = q.Status,
-                NumberOfSponsoredTweets = q.NumberOfSponsoredTweets,
             }));
 
             var tags = await _tweetHashTagRepository.GetListAsync(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.TweetId));
@@ -206,11 +158,6 @@ namespace TK.Twitter.Crawl.Twitter
                 var itemTags = tags.Where(x => x.TweetId == item.LastestTweetId);
                 item.HashTags = itemTags.Select(x => x.Text).Distinct().ToList();
 
-                if (item.UserStatus.IsEmpty())
-                {
-                    item.UserStatus = "New";
-                }
-
                 var tweet = lastestTweets.FirstOrDefault(x => x.tweet.TweetId == item.LastestTweetId);
                 item.LastestSponsoredDate = tweet?.tweet.CreatedAt;
                 item.TweetDescription = tweet?.tweet.FullText;
@@ -220,7 +167,9 @@ namespace TK.Twitter.Crawl.Twitter
 
                 item.LastestSponsoredTweetUrl = "https://twitter.com/_/status/" + item.LastestTweetId; // url k cần quan tâm đên username nên thay bằng _
 
+
                 var itemSignals = signals.Where(x => x.UserId == item.UserId);
+                item.NumberOfSponsoredTweets = itemSignals.Count();
                 item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
             }
 
@@ -238,14 +187,15 @@ namespace TK.Twitter.Crawl.Twitter
             {
                 pageSize = 50;
             }
-
+            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
+            var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
             var query = from tweet in await _tweetRepository.GetQueryableAsync()
-                        join mention in await _tweetUserMentionRepository.GetQueryableAsync() on tweet.TweetId equals mention.TweetId
-                        where mention.UserId == userId
-                        orderby tweet.CreatedAt descending
+                        where mentionQuery.Any(mention => mention.UserId == userId && mention.TweetId == tweet.TweetId) 
+                        && signalQuery.Any(x => x.TweetId == tweet.TweetId)
                         select tweet;
 
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.NormalizeFullText.Contains(searchText));
+            query = query.OrderByDescending(x => x.CreatedAt);
 
             var pr = new PagingResult<TweetDto>();
             pr.TotalCount = await AsyncExecuter.CountAsync(query);
@@ -283,6 +233,7 @@ namespace TK.Twitter.Crawl.Twitter
             var symbols = await _tweetSymbolRepository.GetListAsync(x => pr.Items.Select(x => x.TweetId).Contains(x.TweetId));
             var mentions = await _tweetUserMentionRepository.GetListAsync(x => pr.Items.Select(x => x.TweetId).Contains(x.TweetId));
             var medias = await _tweetMediaRepository.GetListAsync(x => pr.Items.Select(x => x.TweetId).Contains(x.TweetId));
+            var signals = await _twitterUserSignalRepository.GetListAsync(x => pr.Items.Select(x => x.TweetId).Contains(x.TweetId));
 
             foreach (var item in pr.Items)
             {
@@ -328,6 +279,13 @@ namespace TK.Twitter.Crawl.Twitter
                         Url = x.Url
                     }).ToList();
                 }
+
+                var itemSignals = signals.Where(x => x.TweetId == item.TweetId);
+                if (itemSignals.IsNotEmpty())
+                {
+                    item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
+                }
+
             }
 
             return pr;
@@ -344,12 +302,14 @@ namespace TK.Twitter.Crawl.Twitter
                     userStatus = await _tweetUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
                     {
                         UserId = userId,
-                        Status = status
+                        Status = status,
+                        IsUserSuppliedValue = true
                     });
                 }
                 else
                 {
                     userStatus.Status = status;
+                    userStatus.IsUserSuppliedValue = true;
                     await _tweetUserStatusRepository.UpdateAsync(userStatus);
                 }
             }
@@ -368,12 +328,14 @@ namespace TK.Twitter.Crawl.Twitter
                     userType = await _tweetUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
                     {
                         UserId = userId,
-                        Type = type
+                        Type = type,
+                        IsUserSuppliedValue = true
                     });
                 }
                 else
                 {
                     userType.Type = type;
+                    userType.IsUserSuppliedValue = true;
                     await _tweetUserTypeRepository.UpdateAsync(userType);
                 }
             }

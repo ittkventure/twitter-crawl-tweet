@@ -44,6 +44,7 @@ namespace TK.Twitter.Crawl.Twitter
         public List<MediaDto> Medias { get; set; }
         public List<UserMentionDto> UserMentions { get; set; }
 
+        public List<string> Signals { get; set; }
         public List<string> HashTags { get; set; }
         public List<string> Symbols { get; set; }
         public List<string> Urls { get; set; }

@@ -7,6 +7,8 @@ namespace TK.Twitter.Crawl.Entity
         public string UserId { get; set; }
 
         public string Status { get; set; }
+
+        public bool IsUserSuppliedValue { get; set; }
     }
 
 }

@@ -33,6 +33,17 @@ namespace TK.Twitter.Crawl.Jobs
         private const string LOG_PREFIX = "[TwitterTweetCrawlJob] ";
         public const int BATCH_SIZE = 1;
 
+
+        public static List<string> IGNORE_USER_SCREENNAME_MENTIONS = new List<string>()
+            {
+                "binance",
+                "coinbase",
+                "bnbchain",
+                "epicgames",
+                "bitfinex",
+                "bitmartexchange",
+            };
+
         private readonly IBackgroundJobManager _backgroundJobManager;
         private readonly IRepository<TwitterTweetCrawlQueueEntity, long> _twitterTweetCrawlQueueRepository;
         private readonly IRepository<TwitterTweetCrawlRawEntity, long> _twitterTweetCrawlRawRepository;
@@ -43,6 +54,8 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<TwitterTweetUrlEntity, long> _twitterTweetUrlRepository;
         private readonly IRepository<TwitterTweetSymbolEntity, long> _twitterTweetSymbolRepository;
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
+        private readonly IRepository<TwitterUserTypeEntity, long> _twitterUserTypeRepository;
+        private readonly IRepository<TwitterUserStatusEntity, long> _twitterUserStatusRepository;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly TwitterAPITweetService _twitterAPITweetService;
@@ -60,6 +73,8 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<TwitterTweetUrlEntity, long> twitterTweetUrlRepository,
             IRepository<TwitterTweetSymbolEntity, long> twitterTweetSymbolRepository,
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
+            IRepository<TwitterUserTypeEntity, long> twitterUserTypeRepository,
+            IRepository<TwitterUserStatusEntity, long> twitterUserStatusRepository,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
@@ -76,6 +91,8 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterTweetUrlRepository = twitterTweetUrlRepository;
             _twitterTweetSymbolRepository = twitterTweetSymbolRepository;
             _twitterUserSignalRepository = twitterUserSignalRepository;
+            _twitterUserTypeRepository = twitterUserTypeRepository;
+            _twitterUserStatusRepository = twitterUserStatusRepository;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _twitterAPITweetService = twitterAPITweetService;
@@ -471,6 +488,11 @@ namespace TK.Twitter.Crawl.Jobs
                         var name = item["name"].ParseIfNotNull<string>();
                         var screen_name = item["screen_name"].ParseIfNotNull<string>();
 
+                        if (mentions.Any(x => x.UserId == id_str))
+                        {
+                            continue;
+                        }
+
                         mentions.Add(new TwitterTweetUserMentionEntity()
                         {
                             TweetId = tweetId,
@@ -544,6 +566,22 @@ namespace TK.Twitter.Crawl.Jobs
 
                     foreach (var item in mentions)
                     {
+                        //&& !ignoreScreenName.Contains(mention.NormalizeScreenName)
+                        if (item.UserId == tweet.UserId) // bỏ qua mention chính nó
+                        {
+                            continue;
+                        }
+
+                        if (item.UserId == "-1") // bỏ qua các mention đến user suspended
+                        {
+                            continue;
+                        }
+
+                        if (IGNORE_USER_SCREENNAME_MENTIONS.Any(x => item.NormalizeScreenName.Contains(x)))// bỏ qua các mention đến user lớn để bú fame
+                        {
+                            continue;
+                        }
+
                         var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
                         if (signals.IsNotEmpty())
                         {
@@ -555,6 +593,44 @@ namespace TK.Twitter.Crawl.Jobs
                                     TweetId = tweet.TweetId,
                                     Signal = signal,
                                 });
+                            }
+
+                            var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+                            if (userType == null)
+                            {
+                                await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
+                                {
+                                    UserId = item.UserId,
+                                    Type = "LEADS",
+                                    IsUserSuppliedValue = false,
+                                });
+                            }
+                            else
+                            {
+                                if (!userType.IsUserSuppliedValue && userType.Type != "LEADS")
+                                {
+                                    userType.Type = "LEADS";
+                                    await _twitterUserTypeRepository.UpdateAsync(userType);
+                                }
+                            }
+
+                            var userStatus = await _twitterUserStatusRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+                            if (userStatus == null)
+                            {
+                                await _twitterUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
+                                {
+                                    UserId = item.UserId,
+                                    Status = "New",
+                                    IsUserSuppliedValue = false,
+                                });
+                            }
+                            else
+                            {
+                                if (!userStatus.IsUserSuppliedValue && userStatus.Status != "New")
+                                {
+                                    userStatus.Status = "New";
+                                    await _twitterUserStatusRepository.UpdateAsync(userStatus);
+                                }
                             }
                         }
                     }

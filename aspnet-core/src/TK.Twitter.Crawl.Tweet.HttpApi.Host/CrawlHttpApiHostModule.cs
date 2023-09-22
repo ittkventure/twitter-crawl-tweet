@@ -293,5 +293,17 @@ public class CrawlHttpApiHostModule : AbpModule
         {
             RecurringJob.AddOrUpdate<TwitterTweetCrawlWorker>(nameof(TwitterTweetCrawlWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:TwitterTweetCrawlWorker:CronExpression"));
         }
+
+        RecurringJob.RemoveIfExists(nameof(LeadProcessWaitingWorker));
+        if (config.GetValue<bool>("RecurringJobs:LeadProcessWaitingWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<LeadProcessWaitingWorker>(nameof(LeadProcessWaitingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:LeadProcessWaitingWorker:CronExpression"));
+        }
+
+        RecurringJob.RemoveIfExists(nameof(AirTableProcessWaitingWorker));
+        if (config.GetValue<bool>("RecurringJobs:AirTableProcessWaitingWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<AirTableProcessWaitingWorker>(nameof(AirTableProcessWaitingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:AirTableProcessWaitingWorker:CronExpression"));
+        }
     }
 }

@@ -84,6 +84,10 @@ public class CrawlDbContext :
     public DbSet<TwitterTweetCrawlRawEntity> TwitterTweetCrawlTweetRawEntities { get; set; }
 
     public DbSet<TelegramBotSendingQueueEntity> TelegramBotSendQueueEntities { get; set; }
+    public DbSet<AirTableLeadRecordMappingEntity> AirTableLeadRecordMappingEntities { get; set; }
+    public DbSet<AirTableWaitingProcessEntity> AirTableWaitingProcessEntities { get; set; }
+    public DbSet<LeadWaitingProcessEntity> LeadWaitingProcessEntities { get; set; }
+    public DbSet<LeadEntity> LeadEntities { get; set; }
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
         : base(options)
@@ -283,6 +287,64 @@ public class CrawlDbContext :
             b.Property(x => x.Signal).HasMaxLength(128);
             b.HasIndex(x => new { x.UserId });
             b.HasIndex(x => new { x.Signal });
+        });
+
+        builder.Entity<AirTableLeadRecordMappingEntity>(b =>
+        {
+            b.ToTable("air_table_lead_record_mapping");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.AirTableRecordId).HasMaxLength(40);
+            b.Property(x => x.ProjectUserId).HasMaxLength(40);
+            b.HasIndex(x => new { x.AirTableRecordId });
+            b.HasIndex(x => new { x.ProjectUserId });
+        });
+
+        builder.Entity<LeadWaitingProcessEntity>(b =>
+        {
+            b.ToTable("lead_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.TweetId).HasMaxLength(40);
+            b.HasIndex(x => new { x.BatchKey, x.Ended });
+        });
+
+        builder.Entity<AirTableWaitingProcessEntity>(b =>
+        {
+            b.ToTable("air_table_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.TweetId).HasMaxLength(40);
+            b.Property(x => x.UserScreenName).HasMaxLength(256);
+            
+            b.HasIndex(x => new { x.BatchKey, x.Ended });
+        });
+
+        builder.Entity<LeadEntity>(b =>
+        {
+            b.ToTable("lead");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.LastestTweetId).HasMaxLength(40);
+            b.Property(x => x.UserName).HasMaxLength(512);
+            b.Property(x => x.UserScreenName).HasMaxLength(256);
+            b.Property(x => x.UserType).HasMaxLength(128);
+            b.Property(x => x.UserStatus).HasMaxLength(128);
+            b.Property(x => x.Signals).HasMaxLength(512);
+            b.Property(x => x.LastestSponsoredTweetUrl).HasMaxLength(512);
+            b.Property(x => x.TweetOwnerUserId).HasMaxLength(40);
+            b.Property(x => x.MediaMentioned).HasMaxLength(256);
+            b.Property(x => x.HashTags).HasMaxLength(1024);
+            b.Property(x => x.MediaMentionedProfileUrl).HasMaxLength(512);
+            b.Property(x => x.UserProfileUrl).HasMaxLength(512);
+
+            b.HasIndex(x => new { x.UserId });
+            b.HasIndex(x => new { x.Signals });
+            b.HasIndex(x => new { x.UserType });
+            b.HasIndex(x => new { x.UserStatus });
         });
 
     }

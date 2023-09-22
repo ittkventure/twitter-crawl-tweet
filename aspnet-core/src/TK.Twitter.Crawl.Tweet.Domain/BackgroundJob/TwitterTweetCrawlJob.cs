@@ -56,6 +56,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly IRepository<TwitterUserTypeEntity, long> _twitterUserTypeRepository;
         private readonly IRepository<TwitterUserStatusEntity, long> _twitterUserStatusRepository;
+        private readonly IRepository<LeadWaitingProcessEntity, long> _leadWaitingProcessEntityRepository;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly TwitterAPITweetService _twitterAPITweetService;
@@ -75,6 +76,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             IRepository<TwitterUserTypeEntity, long> twitterUserTypeRepository,
             IRepository<TwitterUserStatusEntity, long> twitterUserStatusRepository,
+            IRepository<LeadWaitingProcessEntity, long> leadWaitingProcessEntityRepository,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
@@ -93,6 +95,7 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterUserSignalRepository = twitterUserSignalRepository;
             _twitterUserTypeRepository = twitterUserTypeRepository;
             _twitterUserStatusRepository = twitterUserStatusRepository;
+            _leadWaitingProcessEntityRepository = leadWaitingProcessEntityRepository;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _twitterAPITweetService = twitterAPITweetService;
@@ -321,7 +324,7 @@ namespace TK.Twitter.Crawl.Jobs
                                             JsonContent = data.JsonContent
                                         });
 
-                                        await AddTweet(item.UserId, data.TweetId, data.JsonContent, item.Tags);
+                                        await AddTweet(item.UserId, data.TweetId, data.JsonContent, item.Tags, item.BatchKey);
 
                                         addedTweetIds.Add(data.TweetId);
                                     }
@@ -358,7 +361,7 @@ namespace TK.Twitter.Crawl.Jobs
             await _backgroundJobManager.EnqueueAsync(args);
         }
 
-        public async Task AddTweet(string userId, string tweetId, string jsonContent, string kolTags)
+        public async Task AddTweet(string userId, string tweetId, string jsonContent, string kolTags, string batchKey)
         {
             var entry = JObject.Parse(jsonContent);
             var content = entry["content"];
@@ -560,13 +563,13 @@ namespace TK.Twitter.Crawl.Jobs
                     await _twitterTweetHashTagRepository.InsertManyAsync(tags);
                 }
 
+                // Check Signals
                 if (mentions.IsNotEmpty())
                 {
                     await _twitterTweetUserMentionRepository.InsertManyAsync(mentions);
 
                     foreach (var item in mentions)
                     {
-                        //&& !ignoreScreenName.Contains(mention.NormalizeScreenName)
                         if (item.UserId == tweet.UserId) // bỏ qua mention chính nó
                         {
                             continue;
@@ -594,6 +597,13 @@ namespace TK.Twitter.Crawl.Jobs
                                     Signal = signal,
                                 });
                             }
+
+                            await _leadWaitingProcessEntityRepository.InsertAsync(new LeadWaitingProcessEntity()
+                            {
+                                BatchKey = batchKey,
+                                UserId = item.UserId,
+                                TweetId = tweet.TweetId,
+                            });
 
                             var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
                             if (userType == null)

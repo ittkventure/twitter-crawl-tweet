@@ -1,5 +1,4 @@
-﻿using AutoMapper.Internal.Mappers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -8,8 +7,8 @@ using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
+using TK.Twitter.Crawl.Tweet;
 using Volo.Abp.Domain.Repositories;
-using static System.Collections.Specialized.BitVector32;
 
 namespace TK.Twitter.Crawl.Twitter
 {
@@ -26,6 +25,7 @@ namespace TK.Twitter.Crawl.Twitter
         private readonly IRepository<TwitterTweetHashTagEntity, long> _tweetHashTagRepository;
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly ITwitterTweetMentionDapperRepository _twitterTweetMentionDapperRepository;
+        private readonly Lead3Manager _lead3Manager;
 
         public TweetAppService(
             IRepository<TwitterTweetEntity, long> tweetRepository,
@@ -37,7 +37,8 @@ namespace TK.Twitter.Crawl.Twitter
             IRepository<TwitterTweetMediaEntity, long> tweetMediaRepository,
             IRepository<TwitterTweetHashTagEntity, long> tweetHashTagRepository,
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
-            ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository)
+            ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository,
+            Lead3Manager lead3Manager)
         {
             _tweetRepository = tweetRepository;
             _tweetUserTypeRepository = tweetUserTypeRepository;
@@ -49,6 +50,7 @@ namespace TK.Twitter.Crawl.Twitter
             _tweetHashTagRepository = tweetHashTagRepository;
             _twitterUserSignalRepository = twitterUserSignalRepository;
             _twitterTweetMentionDapperRepository = twitterTweetMentionDapperRepository;
+            _lead3Manager = lead3Manager;
         }
 
         public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(
@@ -60,120 +62,7 @@ namespace TK.Twitter.Crawl.Twitter
             string ownerUserScreenName,
             string signal)
         {
-            if (pageNumber < 1)
-            {
-                pageNumber = 1;
-            }
-
-            if (pageSize <= 0)
-            {
-                pageSize = 50;
-            }
-
-            var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
-            var hashTagQuery = await _tweetHashTagRepository.GetQueryableAsync();
-            var tweetQuery = await _tweetRepository.GetQueryableAsync();
-            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
-
-            var mentionWithFilterQuery = (
-                                          from mention in mentionQuery
-                                          where signalQuery.Any(x => x.TweetId == mention.TweetId && x.UserId == mention.UserId)
-                                          && tweetQuery.Any(tweet => tweet.TweetId == mention.TweetId)
-                                          select new
-                                          {
-                                              mention,
-                                          }
-
-                                      ).GroupBy(x => x.mention.UserId).Select(mt => new
-                                      {
-                                          UserId = mt.Key,
-                                          MaxTweetCreatedAt = mt.Max(x => x.mention.TweetCreatedAt),
-                                      });
-
-
-            var tweetWithMentionCountQuery = from tweet in tweetQuery
-                                             join mention in mentionQuery.GroupBy(x => x.TweetId).Select(x => new { TweetId = x.Key, MentionCount = x.Count() }) on tweet.TweetId equals mention.TweetId
-                                             select new
-                                             {
-                                                 tweet,
-                                                 mention.MentionCount
-                                             };
-
-            var query = from mention_main in mentionQuery
-                        join mention_filter in mentionWithFilterQuery on mention_main.TweetCreatedAt equals mention_filter.MaxTweetCreatedAt
-
-                        join user_type_origin in await _tweetUserTypeRepository.GetQueryableAsync() on mention_main.UserId equals user_type_origin.UserId
-                        into user_type_temp
-                        from user_type in user_type_temp.DefaultIfEmpty()
-
-                        join user_status_origin in await _tweetUserStatusRepository.GetQueryableAsync() on mention_main.UserId equals user_status_origin.UserId
-                        into user_status_temp
-                        from user_status in user_status_temp.DefaultIfEmpty()
-
-                        where mention_main.UserId == mention_filter.UserId
-
-                        select new
-                        {
-                            mention_main,
-                            user_status.Status,
-                            user_type.Type,
-                        };
-
-            query = query.WhereIf(userStatus.IsNotEmpty(), x => x.Status == userStatus);
-            query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
-
-            query = query.OrderByDescending(x => x.mention_main.TweetCreatedAt);
-
-            query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => tweetWithMentionCountQuery.Any(x => x.tweet.UserScreenNameNormalize == ownerUserScreenName));
-            query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())
-                                                                || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));
-
-            query = query.WhereIf(signal.IsNotEmpty(), x => signalQuery.Any(s => s.Signal == signal && x.mention_main.UserId == s.UserId));
-
-            var pr = new PagingResult<TweetMentionDto>();
-            pr.TotalCount = await AsyncExecuter.CountAsync(query);
-            if (pr.TotalCount == 0)
-            {
-                return pr;
-            }
-
-            query = query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
-
-            pr.Items = await AsyncExecuter.ToListAsync(query.Select(q => new TweetMentionDto()
-            {
-                UserId = q.mention_main.UserId,
-                LastestTweetId = q.mention_main.TweetId,
-                UserName = q.mention_main.Name,
-                UserScreenName = q.mention_main.ScreenName,
-                UserType = q.Type,
-                UserStatus = q.Status,
-            }));
-
-            var tags = await _tweetHashTagRepository.GetListAsync(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.TweetId));
-            var lastestTweets = await AsyncExecuter.ToListAsync(tweetWithMentionCountQuery.Where(x => pr.Items.Select(x => x.LastestTweetId).Contains(x.tweet.TweetId)));
-            var signals = await _twitterUserSignalRepository.GetListAsync(x => pr.Items.Select(x => x.UserId).Contains(x.UserId));
-
-            foreach (var item in pr.Items)
-            {
-                var itemTags = tags.Where(x => x.TweetId == item.LastestTweetId);
-                item.HashTags = itemTags.Select(x => x.Text).Distinct().ToList();
-
-                var tweet = lastestTweets.FirstOrDefault(x => x.tweet.TweetId == item.LastestTweetId);
-                item.LastestSponsoredDate = tweet?.tweet.CreatedAt;
-                item.TweetDescription = tweet?.tweet.FullText;
-                item.TweetOwnerUserId = tweet?.tweet.UserId;
-                item.MediaMentioned = tweet?.tweet.UserScreenNameNormalize;
-                item.DuplicateUrlCount = tweet?.MentionCount;
-
-                item.LastestSponsoredTweetUrl = "https://twitter.com/_/status/" + item.LastestTweetId; // url k cần quan tâm đên username nên thay bằng _
-
-
-                var itemSignals = signals.Where(x => x.UserId == item.UserId);
-                item.NumberOfSponsoredTweets = itemSignals.Count();
-                item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
-            }
-
-            return pr;
+            return await _lead3Manager.GetLeadsAsync(pageNumber, pageSize, userStatus, userType, searchText, ownerUserScreenName, signal);
         }
 
         public async Task<PagingResult<TweetDto>> GetTweetListAsync([Required] string userId, int pageNumber, int pageSize, string searchText)
@@ -190,7 +79,7 @@ namespace TK.Twitter.Crawl.Twitter
             var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
             var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
             var query = from tweet in await _tweetRepository.GetQueryableAsync()
-                        where mentionQuery.Any(mention => mention.UserId == userId && mention.TweetId == tweet.TweetId) 
+                        where mentionQuery.Any(mention => mention.UserId == userId && mention.TweetId == tweet.TweetId)
                         && signalQuery.Any(x => x.TweetId == tweet.TweetId)
                         select tweet;
 

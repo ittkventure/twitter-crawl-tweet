@@ -41,13 +41,8 @@ public class ConsoleAppHostedService : IHostedService
             var uowManager = application.ServiceProvider.GetRequiredService<IUnitOfWorkManager>();
             using var uow = uowManager.Begin();
 
-            await application
-                .ServiceProvider
-                .GetRequiredService<TestReRunImportSignalData>().Test(application
-                .ServiceProvider
-                .GetRequiredService<TestReRunImportSignalData>().Get_unitOfWorkManager());
-                //.GetRequiredService<ExportTweetReport>().Run();
-                //.GetRequiredService<TestTwitterGetTweet>().Test();
+            await application.ServiceProvider
+                             .GetRequiredService<TestAirTable>().Test();
             await uow.CompleteAsync();
 
             await application.ShutdownAsync();

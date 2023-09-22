@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<Import Project="..\..\common.props" />
 
@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="BackgroundJob\TwitterFollowingCrawlJob_v2.cs" />
+		<Compile Remove="BackgroundJob\TwitterFollowingCrawlJob_v2.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -32,15 +32,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj" />
-	  <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />
-	  <ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj" />
-	  <ProjectReference Include="..\..\modules\ultils\TK.Ultil\TK.Ultil.csproj" />
-	  <ProjectReference Include="..\TK.Twitter.Crawl.Tweet.Domain.Shared\TK.Twitter.Crawl.Tweet.Domain.Shared.csproj" />
+		<PackageReference Include="Airtable" Version="1.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Twitter\" />
+		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj" />
+		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />
+		<ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj" />
+		<ProjectReference Include="..\..\modules\ultils\TK.Ultil\TK.Ultil.csproj" />
+		<ProjectReference Include="..\TK.Twitter.Crawl.Tweet.Domain.Shared\TK.Twitter.Crawl.Tweet.Domain.Shared.csproj" />
 	</ItemGroup>
 
 </Project>

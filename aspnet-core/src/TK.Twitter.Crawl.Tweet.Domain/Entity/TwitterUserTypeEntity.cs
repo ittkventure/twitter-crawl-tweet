@@ -10,5 +10,4 @@ namespace TK.Twitter.Crawl.Entity
 
         public bool IsUserSuppliedValue { get; set; }
     }
-
 }

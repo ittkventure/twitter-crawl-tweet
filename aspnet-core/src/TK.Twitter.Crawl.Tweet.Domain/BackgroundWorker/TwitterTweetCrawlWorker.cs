@@ -1,9 +1,6 @@
-﻿using System.Linq;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Jobs;
-using TK.Twitter.Crawl.Notification;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
@@ -47,39 +44,7 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
 
             try
             {
-                var batchQuery = await _twitterTweetCrawlBatchRepository.GetQueryableAsync();
-                batchQuery = batchQuery.OrderByDescending(x => x.CreationTime);
-
-                var lastBatch = await _twitterTweetCrawlBatchRepository.AsyncExecuter.FirstOrDefaultAsync(batchQuery);
-
-                // Nếu chưa thực hiện batch nào thì cho start job craw luôn
-                if (lastBatch == null)
-                {
-                    await StartCrawl();
-                }
-                else
-                {
-                    var notEndQueue = await _twitterTweetCrawlQueueRepository.AnyAsync(x => x.BatchKey == lastBatch.Key && x.Ended == false);
-                    // đã crawl đủ dữ liệu nên chuyển sang crawl batch khác
-                    if (!notEndQueue)
-                    {
-                        await StartCrawl();
-                    }
-                    else
-                    {
-                        // Nếu các queue chưa được thực hiện hết mà thời gian thực hiện job lớn hơn 1 ngày
-                        if (lastBatch.CrawlTime < Clock.Now.AddDays(-1))
-                        {
-                            var count = await _twitterTweetCrawlQueueRepository.CountAsync(x => x.BatchKey == lastBatch.Key && x.Ended == false);
-                            await _distributedEventBus.PublishAsync(new NotificationErrorEto()
-                            {
-                                Tags = "[Warning][TwitterTweetCrawlWorker]",
-                                Message = $"Batch {lastBatch.Key} đã chạy lâu hơn 1 ngày. Số lượng tồn: {count}. Kiểm tra đi man!!!"
-                            });
-                        }
-                    }
-                }
-
+                await StartCrawl();
                 await uow.SaveChangesAsync();
                 await uow.CompleteAsync();
             }

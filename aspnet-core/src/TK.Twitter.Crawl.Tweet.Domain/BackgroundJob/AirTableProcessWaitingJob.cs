@@ -29,7 +29,8 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<AirTableWaitingProcessEntity, long> _airTableWaitingProcessRepository;
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingepository;
         private readonly IRepository<LeadEntity, long> _leadRepository;
-        private readonly AirTableManager _airTableManager;
+        private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
+        private readonly AirTableLead3Manager _airTableManager;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IDistributedLockProvider _distributedLockProvider;
@@ -39,7 +40,8 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<AirTableWaitingProcessEntity, long> airTableWaitingProcessRepository,
             IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingepository,
             IRepository<LeadEntity, long> leadRepository,
-            AirTableManager airTableManager,
+            IRepository<TwitterUserEntity, long> twitterUserRepository,
+            AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             IDistributedLockProvider distributedLockProvider)
@@ -48,6 +50,7 @@ namespace TK.Twitter.Crawl.Jobs
             _airTableWaitingProcessRepository = airTableWaitingProcessRepository;
             _airTableLeadRecordMappingepository = airTableLeadRecordMappingepository;
             _leadRepository = leadRepository;
+            _twitterUserRepository = twitterUserRepository;
             _airTableManager = airTableManager;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
@@ -96,20 +99,23 @@ namespace TK.Twitter.Crawl.Jobs
                             }
                         );
 
+                    var users = await _twitterUserRepository.GetListAsync(x => queues.Select(q => q.UserId).Contains(x.UserId));
+
                     foreach (var item in queues)
                     {
                         bool succeed = false;
                         string error;
                         try
                         {
+                            var user = users.FirstOrDefault(x => x.UserId == item.UserId);
                             var lead = syncLeads.FirstOrDefault(x => x.Lead.UserId == item.UserId);
                             if (item.Action == "CREATE")
                             {
-                                (succeed, error) = await _airTableManager.AddLeadAsync(lead.Lead);
+                                (succeed, error) = await _airTableManager.AddLeadAsync(lead.Lead, user);
                             }
                             else
                             {
-                                (succeed, error) = await _airTableManager.UpdateLeadAsync(lead.AirTableRecordId, lead.Lead);
+                                (succeed, error) = await _airTableManager.UpdateLeadAsync(lead.AirTableRecordId, lead.Lead, user);
                             }
 
                             item.Succeed = succeed;

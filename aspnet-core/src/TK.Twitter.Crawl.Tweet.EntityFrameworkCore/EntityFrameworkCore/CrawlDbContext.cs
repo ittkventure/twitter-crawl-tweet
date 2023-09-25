@@ -62,16 +62,11 @@ public class CrawlDbContext :
     #endregion
 
     public DbSet<TwitterCrawlAccountEntity> TwitterCrawlAccountEntities { get; set; }
-
     public DbSet<TwitterAccountEntity> TwitterAccountEntities { get; set; }
-
     public DbSet<TwitterAccountAPIEntity> TwitterAPIEntities { get; set; }
-
     public DbSet<TwitterTweetCrawlBatchEntity> TwitterTweetCrawlBatchEntities { get; set; }
     public DbSet<TwitterTweetCrawlQueueEntity> TwitterTweetCrawlQueueEntities { get; set; }
-
     public DbSet<TwitterInfluencerEntity> TwitterInfluencerEntities { get; set; }
-
     public DbSet<TwitterTweetEntity> TwitterTweetEntities { get; set; }
     public DbSet<TwitterTweetHashTagEntity> TwitterTweetHashTagEntities { get; set; }
     public DbSet<TwitterTweetMediaEntity> TwitterTweetMediaEntities { get; set; }
@@ -82,12 +77,12 @@ public class CrawlDbContext :
     public DbSet<TwitterTweetUrlEntity> TwitterTweetUrlEntities { get; set; }
     public DbSet<TwitterTweetSymbolEntity> TwitterTweetSymbolEntities { get; set; }
     public DbSet<TwitterTweetCrawlRawEntity> TwitterTweetCrawlTweetRawEntities { get; set; }
-
     public DbSet<TelegramBotSendingQueueEntity> TelegramBotSendQueueEntities { get; set; }
     public DbSet<AirTableLeadRecordMappingEntity> AirTableLeadRecordMappingEntities { get; set; }
     public DbSet<AirTableWaitingProcessEntity> AirTableWaitingProcessEntities { get; set; }
     public DbSet<LeadWaitingProcessEntity> LeadWaitingProcessEntities { get; set; }
     public DbSet<LeadEntity> LeadEntities { get; set; }
+    public DbSet<TwitterUserEntity> TwitterUserEntities { get; set; }
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
         : base(options)
@@ -345,6 +340,20 @@ public class CrawlDbContext :
             b.HasIndex(x => new { x.Signals });
             b.HasIndex(x => new { x.UserType });
             b.HasIndex(x => new { x.UserStatus });
+        });
+
+        builder.Entity<TwitterUserEntity>(b =>
+        {
+            b.ToTable("twitter_user");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Name).HasMaxLength(256);
+            b.Property(x => x.ScreenName).HasMaxLength(256);
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.ProfileImageUrl).HasMaxLength(1024);
+
+            b.HasIndex(x => x.UserId);
+            b.HasIndex(x => new { x.CreatedAt });
         });
 
     }

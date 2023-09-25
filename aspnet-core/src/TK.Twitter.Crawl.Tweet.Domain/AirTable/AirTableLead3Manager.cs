@@ -9,27 +9,29 @@ using Volo.Abp.Domain.Services;
 
 namespace TK.Twitter.Crawl.Tweet.AirTable
 {
-    public class AirTableManager : DomainService
+    public class AirTableLead3Manager : DomainService
     {
         private readonly AirTableService _airTableService;
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingRepository;
-
+        private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
         public const string LEAD_TABLE_NAME = "Database_Sync_From_System";
 
-        public AirTableManager(
+        public AirTableLead3Manager(
             AirTableService airTableService,
-            IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository)
+            IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository,
+            IRepository<TwitterUserEntity, long> twitterUserRepository)
         {
             _airTableService = airTableService;
             _airTableLeadRecordMappingRepository = airTableLeadRecordMappingRepository;
+            _twitterUserRepository = twitterUserRepository;
         }
 
-        public async Task<(bool, string)> AddLeadAsync(LeadEntity lead)
+        public async Task<(bool, string)> AddLeadAsync(LeadEntity lead, TwitterUserEntity user)
         {
             bool succeed = false;
 
             var fields = new Fields();
-            fields.FieldsCollection = GetAirTableLeadFields(lead);
+            fields.FieldsCollection = GetAirTableLeadFields(lead, user);
 
             var response = await _airTableService.CreateMultipleRecords(LEAD_TABLE_NAME, new Fields[] {
                 fields
@@ -65,10 +67,10 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             return (succeed, recordId);
         }
 
-        public async Task<(bool, string)> UpdateLeadAsync(string recordId, LeadEntity lead)
+        public async Task<(bool, string)> UpdateLeadAsync(string recordId, LeadEntity lead, TwitterUserEntity user)
         {
             var fields = new IdFields(recordId);
-            fields.FieldsCollection = GetAirTableLeadFields(lead);
+            fields.FieldsCollection = GetAirTableLeadFields(lead, user);
 
             var response = await _airTableService.UpdateMultipleRecords(LEAD_TABLE_NAME, new IdFields[] {
                 fields
@@ -97,12 +99,13 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             return (succeed, recordId);
         }
 
-        public async Task<string> BulkInsertLeadAsync(List<LeadEntity> leads)
+        public async Task<string> BulkInsertLeadAsync(List<LeadEntity> leads, List<TwitterUserEntity> users)
         {
             var fields = leads.Select(lead =>
             {
+                var user = users.FirstOrDefault(x => x.UserId == lead.UserId);
                 var f = new Fields();
-                f.FieldsCollection = GetAirTableLeadFields(lead);
+                f.FieldsCollection = GetAirTableLeadFields(lead, user);
                 return f;
             });
 
@@ -144,14 +147,18 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
         public async Task<string> BulkUpdateLeadAsync(List<LeadEntity> leads)
         {
             var mappings = await _airTableLeadRecordMappingRepository.GetListAsync(x => leads.Select(l => l.UserId).Contains(x.ProjectUserId));
+            var users = await _twitterUserRepository.GetListAsync(x => leads.Select(l => l.UserId).Contains(x.UserId));
 
             var fields = from l in leads.AsQueryable()
                          join m in mappings.AsQueryable() on l.UserId equals m.ProjectUserId
                          into temp
                          from t in temp.DefaultIfEmpty()
+                         join u in users.AsQueryable() on l.UserId equals u.UserId
+                         into temp2
+                         from t2 in temp2.DefaultIfEmpty()
                          select new IdFields(t.AirTableRecordId)
                          {
-                             FieldsCollection = GetAirTableLeadFields(l)
+                             FieldsCollection = GetAirTableLeadFields(l, t2)
                          };
 
             string error = null;
@@ -179,7 +186,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             return error;
         }
 
-        public static Dictionary<string, object> GetAirTableLeadFields(LeadEntity lead)
+        public static Dictionary<string, object> GetAirTableLeadFields(LeadEntity lead, TwitterUserEntity user)
         {
             var dict = new Dictionary<string, object>()
             {
@@ -196,6 +203,11 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                 { "Twitter URL", lead.UserProfileUrl },
                 { "System Lead Id", lead.UserId },
             };
+
+            if (user != null)
+            {
+                dict.Add("Mentioned Twitter Bio", user.Description);
+            }
 
             if (lead.Signals.IsNotEmpty())
             {

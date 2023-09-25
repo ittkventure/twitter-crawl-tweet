@@ -20,13 +20,13 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
     public class TestAirTable : ITransientDependency
     {
         private readonly HttpClient _httpClient;
-        private readonly AirTableManager _airTableManager;
+        private readonly AirTableLead3Manager _airTableManager;
         private readonly Lead3Manager _lead3Manager;
         private readonly IRepository<LeadEntity, long> _leadRepository;
 
         public TestAirTable(
             HttpClient httpClient,
-            AirTableManager airTableManager,
+            AirTableLead3Manager airTableManager,
             Lead3Manager lead3Manager,
             IRepository<LeadEntity, long> leadRepository)
         {
@@ -70,23 +70,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             //}
 
             var leads = await _leadRepository.GetListAsync();
-            //var error = await _airTableManager.BulkUpdateLeadAsync(leads);
-
-            foreach (var lead in leads)
-            {
-                try
-                {
-                    var (succeed, _) = await _airTableManager.AddLeadAsync(lead);
-                    if (!succeed)
-                    {
-
-                    }
-                }
-                catch (Exception ex)
-                {
-
-                }
-            }
+            var error = await _airTableManager.BulkUpdateLeadAsync(leads);
         }
     }
 }

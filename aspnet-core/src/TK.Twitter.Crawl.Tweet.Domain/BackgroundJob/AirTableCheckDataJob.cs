@@ -32,7 +32,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingepository;
         private readonly IRepository<TwitterUserTypeEntity, long> _twitterUserTypepository;
         private readonly IRepository<LeadEntity, long> _leadRepository;
-        private readonly AirTableManager _airTableManager;
+        private readonly AirTableLead3Manager _airTableManager;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly AirTableService _airTableService;
@@ -44,7 +44,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingepository,
             IRepository<TwitterUserTypeEntity, long> twitterUserTypepository,
             IRepository<LeadEntity, long> leadRepository,
-            AirTableManager airTableManager,
+            AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             AirTableService airTableService,
@@ -80,7 +80,7 @@ namespace TK.Twitter.Crawl.Jobs
                 try
                 {
                     var pr = await _airTableService.GetPaged<Dictionary<string, object>>(
-                        AirTableManager.LEAD_TABLE_NAME,
+                        AirTableLead3Manager.LEAD_TABLE_NAME,
                         args.Offset,
                         pageSize: 100,
                         fields: new List<string> { "Type" }

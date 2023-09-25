@@ -92,7 +92,7 @@ namespace TK.Twitter.Crawl.Jobs
                     var signals = await _twitterUserSignalRepository.GetListAsync(x => queues.Select(q => q.UserId).Contains(x.UserId));
                     var leads = await _lead3Manager.GetLeadsAsync(userIds: queues.Select(q => q.UserId).Distinct().ToList());
                     var dbLeads = await _leadRepository.GetListAsync(x => queues.Select(q => q.UserId).Contains(x.UserId));
-
+                    var addUserIds = new List<string>();
                     foreach (var item in queues)
                     {
                         try
@@ -132,6 +132,8 @@ namespace TK.Twitter.Crawl.Jobs
                                         HashTags = lead.HashTags?.JoinAsString(","),
                                     }, autoSave: true);
 
+                                    addUserIds.Add(lead.UserId);
+
                                     // Thêm vào queue đồng bộ lên airtable
                                     await _airTableWaitingProcessRepository.InsertAsync(new AirTableWaitingProcessEntity()
                                     {
@@ -142,7 +144,6 @@ namespace TK.Twitter.Crawl.Jobs
                                         LeadId = entity.Id,
                                         UserScreenName = lead.UserScreenName
                                     });
-
                                     break;
                                 case "UPDATE":
                                     var dbLead = dbLeads.FirstOrDefault(x => x.UserId == item.UserId);
@@ -191,6 +192,11 @@ namespace TK.Twitter.Crawl.Jobs
                         item.Ended = true;
                         await _leadWaitingProcessRepository.UpdateAsync(item);
                     }
+
+                    await _backgroundJobManager.EnqueueAsync(new TwitterAddUserJobArg()
+                    {
+                        UserIds = addUserIds
+                    });
 
                     await uow.SaveChangesAsync();
                     await uow.CompleteAsync();

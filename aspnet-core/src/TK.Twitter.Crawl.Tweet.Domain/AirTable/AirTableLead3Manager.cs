@@ -206,7 +206,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
 
             if (user != null)
             {
-                dict.Add("Mentioned Twitter Bio", user.Description);
+                dict.Add("Project Twitter Bio", user.Description);
             }
 
             if (lead.Signals.IsNotEmpty())

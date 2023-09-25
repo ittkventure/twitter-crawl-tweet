@@ -97,7 +97,6 @@ namespace TK.Twitter.Crawl.Jobs
                     {
                         try
                         {
-                            bool succeed = false;
                             string action;
                             if (!dbLeads.Any(x => x.UserId == item.UserId))
                             {
@@ -118,7 +117,7 @@ namespace TK.Twitter.Crawl.Jobs
                                         UserName = lead.UserName,
                                         UserScreenName = lead.UserScreenName,
                                         UserProfileUrl = "https://twitter.com/" + lead.UserScreenName,
-                                        UserType = "LEADS",
+                                        UserType = CrawlConsts.LeadType.LEADS,
                                         UserStatus = "NEW",
                                         Signals = lead.Signals?.JoinAsString(","),
                                         LastestTweetId = lead.LastestTweetId,
@@ -151,7 +150,7 @@ namespace TK.Twitter.Crawl.Jobs
                                     dbLead.UserName = lead.UserName;
                                     dbLead.UserScreenName = lead.UserScreenName;
                                     dbLead.UserProfileUrl = "https://twitter.com/" + lead.UserScreenName;
-                                    dbLead.UserType = "LEADS";
+                                    dbLead.UserType = CrawlConsts.LeadType.LEADS;
                                     dbLead.UserStatus = "NEW";
                                     dbLead.Signals = lead.Signals?.JoinAsString(",");
                                     dbLead.LastestTweetId = lead.LastestTweetId;
@@ -181,7 +180,8 @@ namespace TK.Twitter.Crawl.Jobs
                                     break;
                             }
 
-                            item.Succeed = succeed;
+                            item.Succeed = true;
+                            item.Note = null;
                         }
                         catch (Exception ex)
                         {
@@ -198,7 +198,7 @@ namespace TK.Twitter.Crawl.Jobs
                 catch (Exception ex)
                 {
                     await uow.RollbackAsync();
-                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while crawling twitter data");
+                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while create/update lead");
                 }
             }
 

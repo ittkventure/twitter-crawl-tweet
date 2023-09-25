@@ -133,7 +133,7 @@ namespace TK.Twitter.Crawl.Jobs
                 catch (Exception ex)
                 {
                     await uow.RollbackAsync();
-                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while crawling twitter data");
+                    Logger.LogError(ex, LOG_PREFIX + "An error occurred while create/update data Airtable");
                 }
             }
 

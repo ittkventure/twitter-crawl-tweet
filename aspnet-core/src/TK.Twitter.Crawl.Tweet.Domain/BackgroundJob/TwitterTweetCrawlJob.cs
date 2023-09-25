@@ -611,15 +611,15 @@ namespace TK.Twitter.Crawl.Jobs
                                 await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
                                 {
                                     UserId = item.UserId,
-                                    Type = "LEADS",
+                                    Type = CrawlConsts.LeadType.LEADS,
                                     IsUserSuppliedValue = false,
                                 });
                             }
                             else
                             {
-                                if (!userType.IsUserSuppliedValue && userType.Type != "LEADS")
+                                if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
                                 {
-                                    userType.Type = "LEADS";
+                                    userType.Type = CrawlConsts.LeadType.LEADS;
                                     await _twitterUserTypeRepository.UpdateAsync(userType);
                                 }
                             }

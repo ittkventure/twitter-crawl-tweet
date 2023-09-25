@@ -1,4 +1,6 @@
-﻿namespace TK.Twitter.Crawl;
+﻿using System.Collections.Generic;
+
+namespace TK.Twitter.Crawl;
 
 public static class CrawlConsts
 {
@@ -6,25 +8,26 @@ public static class CrawlConsts
 
     public const string DbSchema = null;
 
-    public static class ChangeLogType
+    public static class LeadType
     {
-        public const string USER_URL_ADDED = "USER_URL_ADDED";
-        public const string USER_URL_REMOVED = "USER_URL_REMOVED";
-    }
+        public const string LEADS = "LEADS";
+        public const string RETAILS = "RETAILS";
+        public const string BIG_PARTNERS = "BIG_PARTNERS";
+        public const string MEDIA = "MEDIA";
+        public const string CEX = "CEX";
+        public const string NON_CRYPTO_LEADS = "non-crypto leads";
+        public const string Launchpad = "Launchpad";
 
-    public static class UrlType
-    {
-        public const string INFO_URL = "INFO_URL";
-        public const string DESCIPTION_URL = "DESCIPTION_URL";
-    }
+        public static readonly List<string> AllowList = new()
+        {
+            LEADS,
+            RETAILS,
+            BIG_PARTNERS,
+            MEDIA,
+            CEX,
+            NON_CRYPTO_LEADS,
+            Launchpad
+        };
 
-    public static class DataChangeType
-    {
-        public const string TWITTER_USER_NAME = "Name";
-        public const string TWITTER_USER_SCREEN_NAME = "ScreenName";
-        public const string TWITTER_USER_DESCRIPTION = "Description";
-        public const string TWITTER_USER_PROFILE_IMAGE_URL = "ProfileImageUrl";
-        public const string TWITTER_USER_URL = "Urls";
-        public const string TWITTER_USER_STATUS = "Status";
     }
 }

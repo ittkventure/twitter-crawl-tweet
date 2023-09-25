@@ -208,7 +208,7 @@ namespace TK.Twitter.Crawl.Tweet
             var query = await GetLeadQueryableAsync();
 
             var airTableMappingQuery = await _airTableLeadRecordMappingRepository.GetQueryableAsync();
-            query = query.WhereIf(!notExistInAirTable, x => !airTableMappingQuery.Any(a => a.ProjectUserId == x.UserId));
+            query = query.WhereIf(notExistInAirTable, x => !airTableMappingQuery.Any(a => a.ProjectUserId == x.UserId));
             query = query.WhereIf(userIds.IsNotEmpty(), x => userIds.Contains(x.UserId));
 
             var items = await AsyncExecuter.ToListAsync(query);

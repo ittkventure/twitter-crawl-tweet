@@ -305,5 +305,11 @@ public class CrawlHttpApiHostModule : AbpModule
         {
             RecurringJob.AddOrUpdate<AirTableProcessWaitingWorker>(nameof(AirTableProcessWaitingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:AirTableProcessWaitingWorker:CronExpression"));
         }
+
+        RecurringJob.RemoveIfExists(nameof(AirTableCheckDataWorker));
+        if (config.GetValue<bool>("RecurringJobs:AirTableCheckDataWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<AirTableCheckDataWorker>(nameof(AirTableCheckDataWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:AirTableCheckDataWorker:CronExpression"));
+        }
     }
 }

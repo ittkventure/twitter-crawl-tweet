@@ -200,7 +200,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                 { "Duplicate Url Count", lead.DuplicateUrlCount },
                 { "Latest Signal URL", lead.LastestSponsoredTweetUrl },
                 { "Other Signals", lead.NumberOfSponsoredTweets },
-                { "Twitter URL", lead.UserProfileUrl },
+                { "Project Twitter", lead.UserProfileUrl },
                 { "System Lead Id", lead.UserId },
             };
 

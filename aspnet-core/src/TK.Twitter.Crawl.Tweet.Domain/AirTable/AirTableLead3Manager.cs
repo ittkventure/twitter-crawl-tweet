@@ -224,6 +224,9 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                             break;
                         case "SPONSORED_TWEETS":
                             airTableSignals.Add("Buying sponsored ads");
+                            break;     
+                        case "UPCOMMING_TOKEN_SALE":
+                            airTableSignals.Add("Upcomming token sales");
                             break;
                         default:
                             break;

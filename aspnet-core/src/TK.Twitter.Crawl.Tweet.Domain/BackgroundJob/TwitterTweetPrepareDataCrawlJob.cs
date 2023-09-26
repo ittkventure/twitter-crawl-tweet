@@ -70,7 +70,8 @@ namespace TK.Twitter.Crawl.Jobs
 
                     from i in await _twitterInfluencerRepository.GetQueryableAsync()
 
-                    //where i.Tags.Contains("audit") || i.Tags.Contains("cex")
+                        //where i.Tags.Contains("audit") || i.Tags.Contains("cex")
+                    //where i.CreationTime > executionTime.AddDays(-1)
 
                     select new
                     {

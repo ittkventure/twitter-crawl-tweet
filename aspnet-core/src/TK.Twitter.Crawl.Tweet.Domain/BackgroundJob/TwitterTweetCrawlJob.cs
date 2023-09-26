@@ -655,6 +655,7 @@ namespace TK.Twitter.Crawl.Jobs
             const string LISTING_CEX = "LISTING_CEX";
             const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
             const string JUST_AUDITED = "JUST_AUDITED";
+            const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
 
             if (tweetDescription == null)
             {
@@ -729,6 +730,102 @@ namespace TK.Twitter.Crawl.Jobs
                     if (check)
                     {
                         signals.Add(JUST_AUDITED);
+                    }
+                }
+
+                if (kolTags.Contains("upcoming_token_sale"))
+                {
+                    bool check;
+                    switch (kolUserId)
+                    {
+                        case "1402594955047043074": // Spores_Network
+                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("launching")) || (hashTags.Contains("ido") && hashTags.Contains("launching"));
+                            break;
+                        case "1171766610031341568": // Kingdomstarter
+                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("commit")) || (hashTags.Contains("ido") && hashTags.Contains("commit"));
+                            break;
+                        case "1384903770392387586": // bullperks
+                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("upcoming")) || (hashTags.Contains("ido") && hashTags.Contains("upcoming"));
+                            break;
+                        case "1277204360662077440": // trustswap
+                            check = tweetDescription.Contains("new") && tweetDescription.Contains("launchpad") || (hashTags.Contains("new") && hashTags.Contains("launchpad"));
+
+                            if (!check)
+                            {
+                                check = (tweetDescription.Contains("next") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("next") && hashTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetDescription.Contains("upcoming") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("upcoming") && hashTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetDescription.Contains("incoming") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("incoming") && hashTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetDescription.Contains("introducing") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("introducing") && hashTags.Contains("launchpad"));
+                            }
+                            break;
+                        case "1514973302280048647": // Gateio_Startup
+                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
+                            break;
+                        case "957221394009354245": // bitforexcom
+                            check = (tweetDescription.Contains("ieo")) || (hashTags.Contains("ieo"));
+                            break;
+                        case "937166242208763904": // BitMartExchange
+                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
+                            break;
+                        case "1389870631735414787": // kommunitas1
+                            check = (tweetDescription.Contains("iko")) || (hashTags.Contains("iko"));
+                            break;
+                        case "999947328621395968": // Bybit_Official
+                            check = ((tweetDescription.Contains("new") && tweetDescription.Contains("launchpad")) && tweetDescription.Contains("project")) || (hashTags.Contains("launchpad") && hashTags.Contains("project") && hashTags.Contains("project"));
+                            break;
+                        case "1385154488449658880": // pinkecosystem
+                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
+                            break;
+                        case "1300122153317212161": // Poolz__
+                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("launching")) || (hashTags.Contains("ido") && hashTags.Contains("launching"));
+                            break;
+                        case "1460254342070550530": // thegempad
+                            check = (tweetDescription.Contains("announcement") && tweetDescription.Contains("launch")) || (hashTags.Contains("announcement") && hashTags.Contains("launch"));
+                            break;
+                        case "1415522287126671363": // GameFi_Official
+                            check = tweetDescription.Contains("whitelist") || (hashTags.Contains("whitelist"));
+                            break;
+                        case "1368509175769092096": // BSClaunchorg
+                            check = (tweetDescription.Contains("upcoming") && tweetDescription.Contains("ido")) || (hashTags.Contains("upcoming") && hashTags.Contains("ido"));
+                            if (!check)
+                            {
+                                check = (tweetDescription.Contains("launch") && tweetDescription.Contains("ido")) || (hashTags.Contains("launch") && hashTags.Contains("ido"));
+                            }
+                            break;
+                        case "1421126750214385672": // finblox
+                            check = (tweetDescription.Contains("finlaunch") && tweetDescription.Contains("date")) || (hashTags.Contains("finlaunch") && hashTags.Contains("date"));
+                            break;
+                        case "1345102860732788740": // SeedifyFund                            
+                            check = tweetDescription.Contains("launch") && tweetDescription.Contains("ido") || (hashTags.Contains("launch") && hashTags.Contains("ido"));
+                            if (!check)
+                            {
+                                check = tweetDescription.Contains("coming") && tweetDescription.Contains("ido") || (hashTags.Contains("coming") && hashTags.Contains("ido"));
+                            }
+                            if (!check)
+                            {
+                                check = tweetDescription.Contains("upcoming") && tweetDescription.Contains("ido") || (hashTags.Contains("upcoming") && hashTags.Contains("ido"));
+                            }
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(UPCOMMING_TOKEN_SALE);
                     }
                 }
             }

@@ -21,6 +21,7 @@ namespace TK.Twitter.Crawl.Entity
         public string MediaMentioned { get; set; }
         public string MediaMentionedProfileUrl { get; set; }
         public int NumberOfSponsoredTweets { get; set; }
+        public string SignalDescription { get; set; }
         public string HashTags { get; set; }
     }
 }

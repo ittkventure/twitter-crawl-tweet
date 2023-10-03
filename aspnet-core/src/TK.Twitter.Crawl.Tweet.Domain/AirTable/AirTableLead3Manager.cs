@@ -223,7 +223,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                 { "Latest signal from", lead.MediaMentioned },
                 { "Duplicate Url Count", lead.DuplicateUrlCount },
                 { "Latest Signal URL", lead.LastestSponsoredTweetUrl },
-                { "Other Signals", lead.NumberOfSponsoredTweets },
+                { "Other Signals", lead.SignalDescription },
                 { "Project Twitter", lead.UserProfileUrl },
                 { "System Lead Id", lead.UserId },
             };
@@ -238,25 +238,10 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                 var airTableSignals = new List<string>();
                 foreach (var signal in lead.Signals.Split(","))
                 {
-                    switch (signal)
+                    string name = CrawlConsts.Signal.GetName(signal);
+                    if (name.IsNotEmpty())
                     {
-                        case "LISTING_CEX":
-                            airTableSignals.Add("Listing cex");
-                            break;
-                        case "JUST_AUDITED":
-                            airTableSignals.Add("Audit is completed");
-                            break;
-                        case "SPONSORED_TWEETS":
-                            airTableSignals.Add("Buying sponsored ads");
-                            break;
-                        case "UPCOMMING_TOKEN_SALE":
-                            airTableSignals.Add("Upcomming token sales");
-                            break;
-                        case "HOSTING_GIVEAWAYS":
-                            airTableSignals.Add("Hosting Giveaways");
-                            break;
-                        default:
-                            break;
+                        airTableSignals.Add(name);
                     }
                 }
 

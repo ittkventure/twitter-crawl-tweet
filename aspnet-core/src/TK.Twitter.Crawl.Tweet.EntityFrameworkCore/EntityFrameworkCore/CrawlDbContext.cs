@@ -313,7 +313,7 @@ public class CrawlDbContext :
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.TweetId).HasMaxLength(40);
             b.Property(x => x.UserScreenName).HasMaxLength(256);
-            
+
             b.HasIndex(x => new { x.BatchKey, x.Ended });
         });
 
@@ -335,6 +335,7 @@ public class CrawlDbContext :
             b.Property(x => x.HashTags).HasMaxLength(1024);
             b.Property(x => x.MediaMentionedProfileUrl).HasMaxLength(512);
             b.Property(x => x.UserProfileUrl).HasMaxLength(512);
+            b.Property(x => x.SignalDescription).HasMaxLength(5012);
 
             b.HasIndex(x => new { x.UserId });
             b.HasIndex(x => new { x.Signals });

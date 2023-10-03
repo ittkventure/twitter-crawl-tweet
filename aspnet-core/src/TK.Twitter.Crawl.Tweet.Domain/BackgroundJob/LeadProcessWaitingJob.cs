@@ -130,6 +130,7 @@ namespace TK.Twitter.Crawl.Jobs
                                         MediaMentionedProfileUrl = "https://twitter.com/" + lead.MediaMentioned,
                                         NumberOfSponsoredTweets = lead.NumberOfSponsoredTweets,
                                         HashTags = lead.HashTags?.JoinAsString(","),
+                                        SignalDescription = lead.SignalDescription,
                                     }, autoSave: true);
 
                                     addUserIds.Add(lead.UserId);
@@ -164,6 +165,7 @@ namespace TK.Twitter.Crawl.Jobs
                                     dbLead.MediaMentionedProfileUrl = "https://twitter.com/" + lead.MediaMentioned;
                                     dbLead.NumberOfSponsoredTweets = lead.NumberOfSponsoredTweets;
                                     dbLead.HashTags = lead.HashTags?.JoinAsString(",");
+                                    dbLead.SignalDescription = lead.SignalDescription;
 
                                     await _leadRepository.UpdateAsync(dbLead, autoSave: true);
 

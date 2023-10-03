@@ -30,4 +30,42 @@ public static class CrawlConsts
         };
 
     }
+
+    public static class Signal
+    {
+        public const string LISTING_CEX = "LISTING_CEX";
+        public const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
+        public const string JUST_AUDITED = "JUST_AUDITED";
+        public const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
+        public const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
+
+        public static string GetName(string signal)
+        {
+            string name;
+            switch (signal)
+            {
+                case LISTING_CEX:
+                    name = "Listing cex";
+                    break;
+                case JUST_AUDITED:
+                    name = "Audit is completed";
+                    break;
+                case SPONSORED_TWEETS:
+                    name = "Buying sponsored ads";
+                    break;
+                case UPCOMMING_TOKEN_SALE:
+                    name = "Upcomming token sales";
+                    break;
+                case HOSTING_GIVEAWAYS:
+                    name = "Hosting Giveaways";
+                    break;
+                default:
+                    name = null;
+                    break;
+            }
+
+            return name;
+        }
+
+    }
 }

@@ -21,5 +21,6 @@ namespace TK.Twitter.Crawl.Entity.Dapper
         public int NumberOfSponsoredTweets { get; set; }
         public List<string> HashTags { get; set; }
         public List<string> Signals { get; set; }
+        public string SignalDescription { get; set; }
     }
 }

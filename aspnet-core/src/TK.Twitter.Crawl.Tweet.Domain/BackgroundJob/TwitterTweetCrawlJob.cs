@@ -652,11 +652,7 @@ namespace TK.Twitter.Crawl.Jobs
 
         public static IEnumerable<string> GetSignals(string kolUserId, string tweetDescription, string kolTags, IEnumerable<string> hashTags)
         {
-            const string LISTING_CEX = "LISTING_CEX";
-            const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
-            const string JUST_AUDITED = "JUST_AUDITED";
-            const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
-            const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
+
 
             if (tweetDescription == null)
             {
@@ -695,7 +691,7 @@ namespace TK.Twitter.Crawl.Jobs
 
                     if (check)
                     {
-                        signals.Add(LISTING_CEX);
+                        signals.Add(CrawlConsts.Signal.LISTING_CEX);
                     }
                 }
 
@@ -730,7 +726,7 @@ namespace TK.Twitter.Crawl.Jobs
 
                     if (check)
                     {
-                        signals.Add(JUST_AUDITED);
+                        signals.Add(CrawlConsts.Signal.JUST_AUDITED);
                     }
                 }
 
@@ -826,7 +822,7 @@ namespace TK.Twitter.Crawl.Jobs
 
                     if (check)
                     {
-                        signals.Add(UPCOMMING_TOKEN_SALE);
+                        signals.Add(CrawlConsts.Signal.UPCOMMING_TOKEN_SALE);
                     }
                 }
             }
@@ -840,7 +836,7 @@ namespace TK.Twitter.Crawl.Jobs
                     || hashTags.Contains("ads")
                     )
                 {
-                    signals.Add(SPONSORED_TWEETS);
+                    signals.Add(CrawlConsts.Signal.SPONSORED_TWEETS);
                 }
                 else if (hashTags.Contains("giveaways")
                         || hashTags.Contains("airdrops")
@@ -848,7 +844,7 @@ namespace TK.Twitter.Crawl.Jobs
                         || hashTags.Contains("airdrop")
                         || hashTags.Contains("gleam"))
                 {
-                    signals.Add(HOSTING_GIVEAWAYS);
+                    signals.Add(CrawlConsts.Signal.HOSTING_GIVEAWAYS);
                 }
             }
 

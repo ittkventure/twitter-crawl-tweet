@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TK.Twitter.Crawl.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace TK.Twitter.Crawl.Migrations
 {
     [DbContext(typeof(CrawlDbContext))]
-    partial class CrawlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231003103954_Update_Lead_Table_Add_SignalDescription")]
+    partial class UpdateLeadTableAddSignalDescription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

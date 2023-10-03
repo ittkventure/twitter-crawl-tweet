@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Text;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
@@ -8,6 +9,8 @@ using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
+using static System.Collections.Specialized.BitVector32;
+using static TK.Twitter.Crawl.CrawlConsts;
 
 namespace TK.Twitter.Crawl.Tweet
 {
@@ -181,6 +184,14 @@ namespace TK.Twitter.Crawl.Tweet
             var lastestTweets = await AsyncExecuter.ToListAsync(tweetWithMentionCountQuery.Where(x => items.Select(x => x.LastestTweetId).Contains(x.tweet.TweetId)));
             var signals = await _twitterUserSignalRepository.GetListAsync(x => items.Select(x => x.UserId).Contains(x.UserId));
 
+            var anotherSignalQuery = from tweet in tweetQuery
+                                     join signal in signalQuery on tweet.TweetId equals signal.TweetId
+                                     where items.Select(x => x.UserId).Contains(signal.UserId)
+                                     && mentionQuery.Any(mention => mention.UserId == signal.UserId && mention.TweetId == tweet.TweetId)
+                                     select new { signal.UserId, Owner = tweet.UserScreenName, signal.Signal };
+
+            var anotherSignals = await AsyncExecuter.ToListAsync(anotherSignalQuery);
+
             foreach (var item in items)
             {
                 var itemTags = tags.Where(x => x.TweetId == item.LastestTweetId);
@@ -198,6 +209,34 @@ namespace TK.Twitter.Crawl.Tweet
                 var itemSignals = signals.Where(x => x.UserId == item.UserId);
                 item.NumberOfSponsoredTweets = itemSignals.Count();
                 item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
+
+                var anotherSignal = anotherSignals.Where(x => x.UserId == item.UserId).ToList();
+                if (anotherSignal.IsNotEmpty())
+                {
+                    var sb = new StringBuilder();
+                    var groupBy = anotherSignal.GroupBy(x => new { x.UserId, x.Signal, x.Owner }).Select(x => new { x.Key, Count = x.Count() });
+                    foreach (var gb in groupBy)
+                    {
+                        if (sb.Length > 0)
+                        {
+                            sb.Append(Environment.NewLine);
+                        }
+
+                        var signal = CrawlConsts.Signal.GetName(gb.Key.Signal);
+                        if (signal.IsEmpty())
+                        {
+                            continue;
+                        }
+
+                        //Audit is completed @ solidproof
+                        sb.Append($"{signal} @ {gb.Key.Owner}");
+                        if (gb.Count > 1)
+                        {
+                            sb.Append($" {gb.Count} times");
+                        }
+                    }
+                    item.SignalDescription = sb.ToString();
+                }
             }
 
             return items;

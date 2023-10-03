@@ -42,7 +42,8 @@ public class ConsoleAppHostedService : IHostedService
             using var uow = uowManager.Begin();
 
             await application.ServiceProvider
-                             .GetRequiredService<TestAirTable>().Test();
+                             //.GetRequiredService<TestAirTable>().Test();              
+                             .GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
             await uow.CompleteAsync();
 
             await application.ShutdownAsync();

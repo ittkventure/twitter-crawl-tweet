@@ -23,17 +23,20 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
         private readonly AirTableLead3Manager _airTableManager;
         private readonly Lead3Manager _lead3Manager;
         private readonly IRepository<LeadEntity, long> _leadRepository;
+        private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingRepository;
 
         public TestAirTable(
             HttpClient httpClient,
             AirTableLead3Manager airTableManager,
             Lead3Manager lead3Manager,
-            IRepository<LeadEntity, long> leadRepository)
+            IRepository<LeadEntity, long> leadRepository,
+            IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository)
         {
             _httpClient = httpClient;
             _airTableManager = airTableManager;
             _lead3Manager = lead3Manager;
             _leadRepository = leadRepository;
+            _airTableLeadRecordMappingRepository = airTableLeadRecordMappingRepository;
         }
 
         public async Task Test()
@@ -69,8 +72,28 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             //    );
             //}
 
-            var leads = await _leadRepository.GetListAsync();
-            var error = await _airTableManager.BulkUpdateLeadAsync(leads);
+
+            var mappingQuery = await _airTableLeadRecordMappingRepository.GetQueryableAsync();
+
+            var dupplicateQuery = mappingQuery.GroupBy(x => x.ProjectUserId).Select(x => new { x.Key, MaxId = x.Min(z => z.Id), Count = x.Count() }).Where(x => x.Count > 1);
+            var query = from q in mappingQuery
+                        where dupplicateQuery.Any(d => d.MaxId == q.Id)
+                        select q;
+
+            var dupplicates = await _airTableLeadRecordMappingRepository.AsyncExecuter.ToListAsync(query.OrderBy(x => x.ProjectUserId));
+            foreach (var item in dupplicates)
+            {
+                var msg = await _airTableManager.DeleteAsync(item.AirTableRecordId);
+                if (msg.IsNotEmpty())
+                {
+
+                }
+            }
+
+            await _airTableLeadRecordMappingRepository.HardDeleteAsync(dupplicates);
+
+            //var leads = await _leadRepository.GetListAsync();
+            //var error = await _airTableManager.BulkUpdateLeadAsync(leads);
         }
     }
 }

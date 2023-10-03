@@ -28,8 +28,6 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
 
         public async Task<(bool, string)> AddLeadAsync(LeadEntity lead, TwitterUserEntity user)
         {
-            bool succeed = false;
-
             var fields = new Fields();
             fields.FieldsCollection = GetAirTableLeadFields(lead, user);
 
@@ -63,8 +61,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                 ProjectUserId = lead.UserId
             }, autoSave: true);
 
-            succeed = true;
-            return (succeed, recordId);
+            return (true, recordId);
         }
 
         public async Task<(bool, string)> UpdateLeadAsync(string recordId, LeadEntity lead, TwitterUserEntity user)
@@ -72,6 +69,11 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             var fields = new IdFields(recordId);
             fields.FieldsCollection = GetAirTableLeadFields(lead, user);
 
+            // không cập nhật lại cột Type
+            if (fields.FieldsCollection.ContainsKey("Type"))
+            {
+                fields.FieldsCollection.Remove("Type");
+            }
             var response = await _airTableService.UpdateMultipleRecords(LEAD_TABLE_NAME, new IdFields[] {
                 fields
             }, typecast: true);
@@ -186,6 +188,28 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             return error;
         }
 
+        public async Task<string> DeleteAsync(string recordId)
+        {
+            string error = null;
+            var response = await _airTableService.DeleteAsync(LEAD_TABLE_NAME, recordId);
+            if (!response.Success)
+            {
+                if (response.AirtableApiError is AirtableApiException)
+                {
+                    error = response.AirtableApiError.ErrorMessage;
+                    if (response.AirtableApiError is AirtableInvalidRequestException)
+                    {
+                        error += response.AirtableApiError.DetailedErrorMessage;
+                    }
+                }
+                else
+                {
+                    error = "Unknown error";
+                }
+            }
+            return error;
+        }
+
         public static Dictionary<string, object> GetAirTableLeadFields(LeadEntity lead, TwitterUserEntity user)
         {
             var dict = new Dictionary<string, object>()
@@ -224,9 +248,12 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
                             break;
                         case "SPONSORED_TWEETS":
                             airTableSignals.Add("Buying sponsored ads");
-                            break;     
+                            break;
                         case "UPCOMMING_TOKEN_SALE":
                             airTableSignals.Add("Upcomming token sales");
+                            break;
+                        case "HOSTING_GIVEAWAYS":
+                            airTableSignals.Add("Hosting Giveaways");
                             break;
                         default:
                             break;

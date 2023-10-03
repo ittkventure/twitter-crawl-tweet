@@ -88,5 +88,11 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             var response = await airTableBase.UpdateMultipleRecords(tableIdOrName, idFields, typecast, returnFieldsByFieldId, performUpsert);
             return response;
         }
+
+        public async Task<AirtableDeleteRecordResponse> DeleteAsync(string tableIdOrName, string recordId)
+        {
+            var response = await airTableBase.DeleteRecord(tableIdOrName, recordId);
+            return response;
+        }
     }
 }

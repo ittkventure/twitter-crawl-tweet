@@ -656,6 +656,7 @@ namespace TK.Twitter.Crawl.Jobs
             const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
             const string JUST_AUDITED = "JUST_AUDITED";
             const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
+            const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
 
             if (tweetDescription == null)
             {
@@ -829,7 +830,7 @@ namespace TK.Twitter.Crawl.Jobs
                     }
                 }
             }
-            else
+            else // media tag
             {
                 if (
                     (hashTags.Contains("ama") && !tweetDescription.Contains("winner"))
@@ -840,6 +841,14 @@ namespace TK.Twitter.Crawl.Jobs
                     )
                 {
                     signals.Add(SPONSORED_TWEETS);
+                }
+                else if (hashTags.Contains("giveaways")
+                        || hashTags.Contains("airdrops")
+                        || hashTags.Contains("giveaway")
+                        || hashTags.Contains("airdrop")
+                        || hashTags.Contains("gleam"))
+                {
+                    signals.Add(HOSTING_GIVEAWAYS);
                 }
             }
 

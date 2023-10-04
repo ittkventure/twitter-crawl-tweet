@@ -229,7 +229,7 @@ namespace TK.Twitter.Crawl.Tweet
                         }
 
                         //Audit is completed @ solidproof
-                        sb.Append($"{signal} @ {gb.Key.Owner}");
+                        sb.Append($"● {signal} @ {gb.Key.Owner}");
                         if (gb.Count > 1)
                         {
                             sb.Append($" {gb.Count} times");

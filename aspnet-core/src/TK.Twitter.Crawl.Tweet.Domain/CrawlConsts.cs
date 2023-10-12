@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace TK.Twitter.Crawl;
 
@@ -33,11 +34,18 @@ public static class CrawlConsts
 
     public static class Signal
     {
+        public class Source
+        {
+            public const string TWITTER_TWEET = "TWITTER_TWEET";
+            public const string AIR_TABLE_MANUAL_SOURCE = "AIR_TABLE_MANUAL_SOURCE";
+        }
+
         public const string LISTING_CEX = "LISTING_CEX";
         public const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
         public const string JUST_AUDITED = "JUST_AUDITED";
         public const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
         public const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
+        public const string BUYING_SPONSORED_POSTS = "BUYING_SPONSORED_POSTS";
 
         public static string GetName(string signal)
         {
@@ -59,12 +67,46 @@ public static class CrawlConsts
                 case HOSTING_GIVEAWAYS:
                     name = "Hosting Giveaways";
                     break;
+                case BUYING_SPONSORED_POSTS:
+                    name = "Buying Sponsored Posts";
+                    break;
                 default:
                     name = null;
                     break;
             }
 
             return name;
+        }
+
+        public static string GetCode(string signal)
+        {
+            string code;
+            switch (signal.Trim().ToLower())
+            {
+                case "listing cex":
+                    code = LISTING_CEX;
+                    break;
+                case "audit is completed":
+                    code = JUST_AUDITED;
+                    break;
+                case "buying sponsored ads":
+                    code = SPONSORED_TWEETS;
+                    break;
+                case "upcomming token sales":
+                    code = UPCOMMING_TOKEN_SALE;
+                    break;
+                case "hosting giveaways":
+                    code = HOSTING_GIVEAWAYS;
+                    break;
+                case "buying sponsored posts":
+                    code = BUYING_SPONSORED_POSTS;
+                    break;
+                default:
+                    code = null;
+                    break;
+            }
+
+            return code;
         }
 
     }

@@ -9,7 +9,6 @@ using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
-using static System.Collections.Specialized.BitVector32;
 using static TK.Twitter.Crawl.CrawlConsts;
 
 namespace TK.Twitter.Crawl.Tweet
@@ -26,6 +25,7 @@ namespace TK.Twitter.Crawl.Tweet
         private readonly IRepository<TwitterTweetHashTagEntity, long> _tweetHashTagRepository;
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingRepository;
+        private readonly IRepository<AirTableManualSourceEntity, long> _airTableManualSourceRepository;
         private readonly ITwitterTweetMentionDapperRepository _twitterTweetMentionDapperRepository;
 
         public Lead3Manager(
@@ -39,6 +39,7 @@ namespace TK.Twitter.Crawl.Tweet
             IRepository<TwitterTweetHashTagEntity, long> tweetHashTagRepository,
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository,
+            IRepository<AirTableManualSourceEntity, long> airTableManualSourceRepository,
             ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository)
         {
             _tweetRepository = tweetRepository;
@@ -51,6 +52,7 @@ namespace TK.Twitter.Crawl.Tweet
             _tweetHashTagRepository = tweetHashTagRepository;
             _twitterUserSignalRepository = twitterUserSignalRepository;
             _airTableLeadRecordMappingRepository = airTableLeadRecordMappingRepository;
+            _airTableManualSourceRepository = airTableManualSourceRepository;
             _twitterTweetMentionDapperRepository = twitterTweetMentionDapperRepository;
         }
 
@@ -129,25 +131,28 @@ namespace TK.Twitter.Crawl.Tweet
             var query = from mention_main in mentionQuery
                         join mention_filter in mentionWithFilterQuery on mention_main.TweetCreatedAt equals mention_filter.MaxTweetCreatedAt
 
-                        join user_type_origin in await _tweetUserTypeRepository.GetQueryableAsync() on mention_main.UserId equals user_type_origin.UserId
-                        into user_type_temp
-                        from user_type in user_type_temp.DefaultIfEmpty()
+                        //join user_type_origin in await _tweetUserTypeRepository.GetQueryableAsync() on mention_main.UserId equals user_type_origin.UserId
+                        //into user_type_temp
+                        //from user_type in user_type_temp.DefaultIfEmpty()
 
-                        join user_status_origin in await _tweetUserStatusRepository.GetQueryableAsync() on mention_main.UserId equals user_status_origin.UserId
-                        into user_status_temp
-                        from user_status in user_status_temp.DefaultIfEmpty()
+                        //join user_status_origin in await _tweetUserStatusRepository.GetQueryableAsync() on mention_main.UserId equals user_status_origin.UserId
+                        //into user_status_temp
+                        //from user_status in user_status_temp.DefaultIfEmpty()
 
                         where mention_main.UserId == mention_filter.UserId
 
                         select new
                         {
                             mention_main,
-                            user_status.Status,
-                            user_type.Type,
+                            //user_status.Status,
+                            //user_type.Type,
                         };
 
-            query = query.WhereIf(userStatus.IsNotEmpty(), x => x.Status == userStatus);
-            query = query.WhereIf(userType.IsNotEmpty(), x => x.Type == userType);
+            var userStatusQuery = await _tweetUserStatusRepository.GetQueryableAsync();
+            var userTypeQuery = await _tweetUserTypeRepository.GetQueryableAsync();
+
+            query = query.WhereIf(userStatus.IsNotEmpty(), x => userStatusQuery.Any(us => us.UserId == x.mention_main.UserId && us.Status == userStatus));
+            query = query.WhereIf(userType.IsNotEmpty(), x => userTypeQuery.Any(ut => ut.UserId == x.mention_main.UserId && ut.Type == userType));
             query = query.WhereIf(ownerUserScreenName.IsNotEmpty(), x => tweetWithMentionCountQuery.Any(x => x.tweet.UserScreenNameNormalize == ownerUserScreenName));
             query = query.WhereIf(searchText.IsNotEmpty(), x => x.mention_main.NormalizeScreenName.Contains(searchText.ToLower())
                                                                 || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));
@@ -159,8 +164,8 @@ namespace TK.Twitter.Crawl.Tweet
                 LastestTweetId = q.mention_main.TweetId,
                 UserName = q.mention_main.Name,
                 UserScreenName = q.mention_main.ScreenName,
-                UserType = q.Type,
-                UserStatus = q.Status,
+                //UserType = q.Type,
+                //UserStatus = q.Status,
                 LastestSponsoredDate = q.mention_main.TweetCreatedAt
             });
         }
@@ -183,14 +188,10 @@ namespace TK.Twitter.Crawl.Tweet
             var tags = await _tweetHashTagRepository.GetListAsync(x => items.Select(x => x.LastestTweetId).Contains(x.TweetId));
             var lastestTweets = await AsyncExecuter.ToListAsync(tweetWithMentionCountQuery.Where(x => items.Select(x => x.LastestTweetId).Contains(x.tweet.TweetId)));
             var signals = await _twitterUserSignalRepository.GetListAsync(x => items.Select(x => x.UserId).Contains(x.UserId));
+            var userStatuses = await _tweetUserStatusRepository.GetListAsync(x => items.Select(x => x.UserId).Contains(x.UserId));
+            var userTypes = await _tweetUserTypeRepository.GetListAsync(x => items.Select(x => x.UserId).Contains(x.UserId));
 
-            var anotherSignalQuery = from tweet in tweetQuery
-                                     join signal in signalQuery on tweet.TweetId equals signal.TweetId
-                                     where items.Select(x => x.UserId).Contains(signal.UserId)
-                                     && mentionQuery.Any(mention => mention.UserId == signal.UserId && mention.TweetId == tweet.TweetId)
-                                     select new { signal.UserId, Owner = tweet.UserScreenName, signal.Signal };
-
-            var anotherSignals = await AsyncExecuter.ToListAsync(anotherSignalQuery);
+            var anotherSignals = await GetSignalDescription(items.Select(x => x.UserId).Distinct());
 
             foreach (var item in items)
             {
@@ -210,7 +211,71 @@ namespace TK.Twitter.Crawl.Tweet
                 item.NumberOfSponsoredTweets = itemSignals.Count();
                 item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
 
-                var anotherSignal = anotherSignals.Where(x => x.UserId == item.UserId).ToList();
+                var userType = userTypes.FirstOrDefault(x => x.UserId == item.UserId);
+                item.UserType = userType?.Type;
+
+                var userStatus = userStatuses.FirstOrDefault(x => x.UserId == item.UserId);
+                item.UserStatus = userStatus?.Status;
+
+                if (anotherSignals.TryGetValue(item.UserId, out string otherSignal))
+                {
+                    item.SignalDescription = otherSignal;
+                }
+            }
+
+            return items;
+        }
+
+        public async Task<List<TweetMentionDto>> GetLeadsAsync(List<string> userIds = null, bool notExistInAirTable = false)
+        {
+            var query = await GetLeadQueryableAsync();
+
+            var airTableMappingQuery = await _airTableLeadRecordMappingRepository.GetQueryableAsync();
+            query = query.WhereIf(notExistInAirTable, x => !airTableMappingQuery.Any(a => a.ProjectUserId == x.UserId));
+            query = query.WhereIf(userIds.IsNotEmpty(), x => userIds.Contains(x.UserId));
+
+            var items = await AsyncExecuter.ToListAsync(query);
+            if (items.IsEmpty())
+            {
+                return items;
+            }
+
+            await PrepareLeadDtoAsync(items);
+
+            return items;
+        }
+
+        public async Task<Dictionary<string, string>> GetSignalDescription(IEnumerable<string> userIds)
+        {
+            var dict = new Dictionary<string, string>();
+
+            var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
+            var tweetQuery = await _tweetRepository.GetQueryableAsync();
+            var signalQuery = await _twitterUserSignalRepository.GetQueryableAsync();
+            var manualSourceQuery = await _airTableManualSourceRepository.GetQueryableAsync();
+
+            var anotherSignalQuery = from tweet in tweetQuery
+                                     join signal in signalQuery on tweet.TweetId equals signal.TweetId
+                                     where userIds.Contains(signal.UserId)
+                                     && mentionQuery.Any(mention => mention.UserId == signal.UserId && mention.TweetId == tweet.TweetId)
+                                     select new { UserId = signal.UserId, Owner = tweet.UserScreenName, Signal = signal.Signal };
+
+            var anotherSignals = await AsyncExecuter.ToListAsync(anotherSignalQuery);
+
+            var manualSourceSignals = await AsyncExecuter.ToListAsync(
+
+                from s in signalQuery
+                join ms in manualSourceQuery on s.AirTableRecordId equals ms.RecordId
+                where s.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE && userIds.Contains(s.UserId)
+                select new { UserId = s.UserId, Owner = ms.LastestSignalFrom, Signal = s.Signal }
+                );
+
+            var signals = anotherSignals.Union(manualSourceSignals).ToList();
+
+            foreach (var userId in userIds)
+            {
+
+                var anotherSignal = signals.Where(x => x.UserId == userId).ToList();
                 if (anotherSignal.IsNotEmpty())
                 {
                     var sb = new StringBuilder();
@@ -235,30 +300,11 @@ namespace TK.Twitter.Crawl.Tweet
                             sb.Append($" {gb.Count} times");
                         }
                     }
-                    item.SignalDescription = sb.ToString();
+                    dict.Add(userId, sb.ToString());
                 }
             }
 
-            return items;
-        }
-
-        public async Task<List<TweetMentionDto>> GetLeadsAsync(List<string> userIds = null, bool notExistInAirTable = false)
-        {
-            var query = await GetLeadQueryableAsync();
-
-            var airTableMappingQuery = await _airTableLeadRecordMappingRepository.GetQueryableAsync();
-            query = query.WhereIf(notExistInAirTable, x => !airTableMappingQuery.Any(a => a.ProjectUserId == x.UserId));
-            query = query.WhereIf(userIds.IsNotEmpty(), x => userIds.Contains(x.UserId));
-
-            var items = await AsyncExecuter.ToListAsync(query);
-            if (items.IsEmpty())
-            {
-                return items;
-            }
-
-            await PrepareLeadDtoAsync(items);
-
-            return items;
+            return dict;
         }
     }
 }

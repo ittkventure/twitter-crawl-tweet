@@ -9,6 +9,10 @@ namespace TK.Twitter.Crawl.Entity
 
         public string UserId { get; set; }
 
+        public string Source { get; set; }
+
+        public string RecordId { get; set; }
+
         public string TweetId { get; set; }
 
         public bool Ended { get; set; }

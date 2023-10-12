@@ -595,6 +595,7 @@ namespace TK.Twitter.Crawl.Jobs
                                     UserId = item.UserId,
                                     TweetId = tweet.TweetId,
                                     Signal = signal,
+                                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                                 });
                             }
 
@@ -603,6 +604,7 @@ namespace TK.Twitter.Crawl.Jobs
                                 BatchKey = batchKey,
                                 UserId = item.UserId,
                                 TweetId = tweet.TweetId,
+                                Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                             });
 
                             var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);

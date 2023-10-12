@@ -83,6 +83,8 @@ public class CrawlDbContext :
     public DbSet<LeadWaitingProcessEntity> LeadWaitingProcessEntities { get; set; }
     public DbSet<LeadEntity> LeadEntities { get; set; }
     public DbSet<TwitterUserEntity> TwitterUserEntities { get; set; }
+    public DbSet<AirTableManualSourceEntity> AirTableManualSourceEntities { get; set; }
+    public DbSet<AirTableManualSourceWaitingProcessEntity> AirTableManualSourceWaitingProcessEntities { get; set; }
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
         : base(options)
@@ -280,6 +282,8 @@ public class CrawlDbContext :
             b.Property(x => x.TweetId).HasMaxLength(40);
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.Signal).HasMaxLength(128);
+            b.Property(x => x.AirTableRecordId).HasMaxLength(128);
+            b.Property(x => x.Source).HasMaxLength(128);
             b.HasIndex(x => new { x.UserId });
             b.HasIndex(x => new { x.Signal });
         });
@@ -302,6 +306,8 @@ public class CrawlDbContext :
 
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.TweetId).HasMaxLength(40);
+            b.Property(x => x.Source).HasMaxLength(128);
+            b.Property(x => x.RecordId).HasMaxLength(128);
             b.HasIndex(x => new { x.BatchKey, x.Ended });
         });
 
@@ -315,6 +321,17 @@ public class CrawlDbContext :
             b.Property(x => x.UserScreenName).HasMaxLength(256);
 
             b.HasIndex(x => new { x.BatchKey, x.Ended });
+        });
+
+        builder.Entity<AirTableManualSourceWaitingProcessEntity>(b =>
+        {
+            b.ToTable("air_table_manual_source_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.ProjectTwitter).HasMaxLength(512);
+            b.Property(x => x.RecordId).HasMaxLength(256);
+
+            b.HasIndex(x => new { x.Ended });
         });
 
         builder.Entity<LeadEntity>(b =>
@@ -355,6 +372,15 @@ public class CrawlDbContext :
 
             b.HasIndex(x => x.UserId);
             b.HasIndex(x => new { x.CreatedAt });
+        });
+
+        builder.Entity<AirTableManualSourceEntity>(b =>
+        {
+            b.ToTable("air_table_manual_source");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.RecordId).HasMaxLength(256);
+            b.HasIndex(x => x.RecordId);
         });
 
     }

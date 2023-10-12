@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TK.Twitter.Crawl.EntityFrameworkCore;
@@ -12,9 +13,11 @@ using Volo.Abp.EntityFrameworkCore;
 namespace TK.Twitter.Crawl.Migrations
 {
     [DbContext(typeof(CrawlDbContext))]
-    partial class CrawlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231004072651_Add_AirTable_Manual_Source_Table")]
+    partial class AddAirTableManualSourceTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -193,15 +196,6 @@ namespace TK.Twitter.Crawl.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Type")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserScreenName")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -516,14 +510,6 @@ namespace TK.Twitter.Crawl.Migrations
 
                     b.Property<string>("Note")
                         .HasColumnType("text");
-
-                    b.Property<string>("RecordId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
 
                     b.Property<bool>("Succeed")
                         .HasColumnType("boolean");
@@ -1387,10 +1373,6 @@ namespace TK.Twitter.Crawl.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("AirTableRecordId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("CreationTime");
@@ -1422,10 +1404,6 @@ namespace TK.Twitter.Crawl.Migrations
                         .HasColumnName("LastModifierId");
 
                     b.Property<string>("Signal")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("Source")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 

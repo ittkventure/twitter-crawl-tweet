@@ -18,6 +18,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
     public class TestTwitterGetTweet : ITransientDependency
     {
         private readonly TwitterAPITweetService _twitterAPITweetService;
+        private readonly TwitterAPIUserService _twitterAPIUserService;
         private readonly IClock _clock;
         private readonly TwitterAPIAuthService _twitterAPIAuthService;
         private readonly ITwitterAccountRepository _twitterAccountRepository;
@@ -26,6 +27,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
         public TestTwitterGetTweet(
             TwitterAPITweetService twitterAPITweetService,
+            TwitterAPIUserService twitterAPIUserService,
             IClock clock,
             TwitterAPIAuthService twitterAPIAuthService,
             ITwitterAccountRepository twitterAccountRepository,
@@ -33,6 +35,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             IRepository<TwitterTweetEntity, long> twitterTweetRepository)
         {
             _twitterAPITweetService = twitterAPITweetService;
+            _twitterAPIUserService = twitterAPIUserService;
             _clock = clock;
             _twitterAPIAuthService = twitterAPIAuthService;
             _twitterAccountRepository = twitterAccountRepository;
@@ -41,6 +44,12 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
         }
 
         public async Task Test()
+        {
+            var response = await _twitterAPIUserService.GetUserByScreenNameAsync("b2binpay", "Account_5");
+            
+        }
+
+        public async Task Test_1()
         {
             try
             {

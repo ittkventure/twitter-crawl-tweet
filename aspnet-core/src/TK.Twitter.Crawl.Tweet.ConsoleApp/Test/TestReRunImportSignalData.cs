@@ -179,6 +179,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                                                     UserId = userId,
                                                     TweetId = raw.tweet.TweetId,
                                                     Signal = signal,
+                                                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                                                 });
                                             }
                                         }

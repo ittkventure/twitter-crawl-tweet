@@ -72,6 +72,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 {
                     BatchKey = "UPDATE_OTHER_SIGNAL_COL",
                     UserId = lead.UserId,
+                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                 });
             }
         }
@@ -139,7 +140,8 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 {
                     UserId = um.UserId,
                     TweetId = um.TweetId,
-                    Signal = "HOSTING_GIVEAWAYS"
+                    Signal = "HOSTING_GIVEAWAYS",
+                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                 });
 
                 await _leadWaitingProcessRepository.InsertAsync(new LeadWaitingProcessEntity()
@@ -147,6 +149,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                     BatchKey = "SYNC_HOSTING_GIVEAWAYS",
                     UserId = um.UserId,
                     TweetId = um.TweetId,
+                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                 });
 
                 var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == um.UserId);

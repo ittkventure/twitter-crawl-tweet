@@ -40,56 +40,6 @@ namespace TK.Twitter.Crawl.TwitterAPI
 
         public HttpClient HttpClient { get; }
 
-        //public async Task<TwitterAPIUserGetFollowingResponse> GetFollowingAsync(string userId, string crawlAccountId, bool requiredLogin = false, string cursor = null)
-        //{
-        //    var crawlAccountInfo = await _twitterCrawlAccountRepository.FirstOrDefaultAsync(x => x.AccountId == crawlAccountId);
-        //    if (crawlAccountInfo == null || requiredLogin)
-        //    {
-        //        crawlAccountInfo = await _twitterAuthService.CheckLogin(crawlAccountId);
-        //    }
-
-        //    string url = "https://twitter.com/i/api/graphql/q4cKckK0lNxWkHfAXXXzJQ/Following";
-
-        //    var varibles = new
-        //    {
-        //        userId,
-        //        count = 100,
-        //        includePromotedContent = false,
-        //        cursor
-        //    };
-
-        //    var features = new
-        //    {
-        //        rweb_lists_timeline_redesign_enabled = false,
-        //        blue_business_profile_image_shape_enabled = true,
-        //        responsive_web_graphql_exclude_directive_enabled = true,
-        //        verified_phone_label_enabled = false,
-        //        creator_subscriptions_tweet_preview_api_enabled = false,
-        //        responsive_web_graphql_timeline_navigation_enabled = true,
-        //        responsive_web_graphql_skip_user_profile_image_extensions_enabled = false,
-        //        tweetypie_unmention_optimization_enabled = true,
-        //        vibe_api_enabled = true,
-        //        responsive_web_edit_tweet_api_enabled = true,
-        //        graphql_is_translatable_rweb_tweet_is_translatable_enabled = true,
-        //        view_counts_everywhere_api_enabled = true,
-        //        longform_notetweets_consumption_enabled = true,
-        //        tweet_awards_web_tipping_enabled = false,
-        //        freedom_of_speech_not_reach_fetch_enabled = true,
-        //        standardized_nudges_misinfo = true,
-        //        tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled = false,
-        //        interactive_text_enabled = true,
-        //        responsive_web_text_conversations_enabled = false,
-        //        longform_notetweets_rich_text_read_enabled = true,
-        //        longform_notetweets_inline_media_enabled = false,
-        //        responsive_web_enhance_cards_enabled = false
-        //    };
-
-        //    url += "?variables=" + WebUtility.UrlEncode(JsonHelper.Stringify(varibles));
-        //    url += "&features=" + WebUtility.UrlEncode(JsonHelper.Stringify(features));
-
-        //    return await SendAsync<TwitterAPIUserGetFollowingResponse>(url, crawlAccountInfo.GuestToken, crawlAccountInfo.CookieCtZeroValue, crawlAccountInfo.Cookie);
-        //}
-
         public async Task<TwitterAPIUserGetUserResponse> GetUserByIdsAsync(List<string> userIds, string crawlAccountId, bool requiredLogin = false)
         {
             var crawlAccountInfo = await _twitterCrawlAccountRepository.FirstOrDefaultAsync(x => x.AccountId == crawlAccountId);
@@ -148,6 +98,48 @@ namespace TK.Twitter.Crawl.TwitterAPI
 
             url += "?variables=" + WebUtility.UrlEncode(JsonHelper.Stringify(varibles));
             url += "&features=" + WebUtility.UrlEncode(JsonHelper.Stringify(features));
+
+            return await SendAsync(url, crawlAccountInfo.GuestToken, crawlAccountInfo.CookieCtZeroValue, crawlAccountInfo.Cookie);
+        }
+
+        public async Task<TwitterAPIUserGetUserResponse> GetUserByScreenNameAsync(string screenName, string crawlAccountId, bool requiredLogin = false)
+        {
+            var crawlAccountInfo = await _twitterCrawlAccountRepository.FirstOrDefaultAsync(x => x.AccountId == crawlAccountId);
+            if (crawlAccountInfo == null || requiredLogin)
+            {
+                crawlAccountInfo = await _twitterAuthService.CheckLogin(crawlAccountId);
+            }
+
+            string url = "https://twitter.com/i/api/graphql/G3KGOASz96M-Qu0nwmGXNg/UserByScreenName";
+
+            var varibles = new
+            {
+                screen_name = screenName,
+                withSafetyModeUserFields = true
+            };
+
+            var features = new
+            {
+                hidden_profile_likes_enabled = true,
+                hidden_profile_subscriptions_enabled = true,
+                responsive_web_graphql_exclude_directive_enabled = true,
+                verified_phone_label_enabled = false,
+                subscriptions_verification_info_is_identity_verified_enabled = true,
+                subscriptions_verification_info_verified_since_enabled = true,
+                highlights_tweets_tab_ui_enabled = true,
+                creator_subscriptions_tweet_preview_api_enabled = true,
+                responsive_web_graphql_skip_user_profile_image_extensions_enabled = false,
+                responsive_web_graphql_timeline_navigation_enabled = true
+            };
+
+            var fieldToggles = new
+            {
+                withAuxiliaryUserLabels = false
+            };
+
+            url += "?variables=" + WebUtility.UrlEncode(JsonHelper.Stringify(varibles));
+            url += "&features=" + WebUtility.UrlEncode(JsonHelper.Stringify(features));
+            url += "&fieldToggles=" + WebUtility.UrlEncode(JsonHelper.Stringify(fieldToggles));
 
             return await SendAsync(url, crawlAccountInfo.GuestToken, crawlAccountInfo.CookieCtZeroValue, crawlAccountInfo.Cookie);
         }

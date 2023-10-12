@@ -6,8 +6,12 @@ namespace TK.Twitter.Crawl.Entity
     {
         public string UserId { get; set; }
 
+        public string Signal { get; set; }
+
+        public string Source { get; set; }
+
         public string TweetId { get; set; }
 
-        public string Signal { get; set; }
+        public string AirTableRecordId { get; set; }
     }
 }

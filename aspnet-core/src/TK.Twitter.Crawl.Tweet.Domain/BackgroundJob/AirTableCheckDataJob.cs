@@ -169,7 +169,7 @@ namespace TK.Twitter.Crawl.Jobs
                                 UserId = lr.Lead.UserId,
                                 Type = type,
                                 IsUserSuppliedValue = true
-                            });
+                            }, autoSave: true);
                         }
                         else
                         {

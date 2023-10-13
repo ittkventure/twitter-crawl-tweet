@@ -43,6 +43,8 @@ public static class CrawlConsts
         public const string LISTING_CEX = "LISTING_CEX";
         public const string SPONSORED_TWEETS = "SPONSORED_TWEETS";
         public const string JUST_AUDITED = "JUST_AUDITED";
+        public const string JUST_LISTED_IN_COINGECKO = "JUST_LISTED_IN_COINGECKO";
+        public const string JUST_LISTED_IN_COINMARKETCAP = "JUST_LISTED_IN_COINMARKETCAP";
         public const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
         public const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
         public const string BUYING_SPONSORED_POSTS = "BUYING_SPONSORED_POSTS";
@@ -69,6 +71,12 @@ public static class CrawlConsts
                     break;
                 case BUYING_SPONSORED_POSTS:
                     name = "Buying Sponsored Posts";
+                    break;
+                case JUST_LISTED_IN_COINGECKO:
+                    name = "Just listed in Coingecko";
+                    break;
+                case JUST_LISTED_IN_COINMARKETCAP:
+                    name = "Just listed in Coinmarketcap";
                     break;
                 default:
                     name = null;
@@ -100,6 +108,12 @@ public static class CrawlConsts
                     break;
                 case "buying sponsored posts":
                     code = BUYING_SPONSORED_POSTS;
+                    break;
+                case "Just listed in Coingecko":
+                    code = JUST_LISTED_IN_COINGECKO;
+                    break;
+                case "Just listed in Coinmarketcap":
+                    code = JUST_LISTED_IN_COINMARKETCAP;
                     break;
                 default:
                     code = null;

@@ -160,7 +160,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                         UserId = um.UserId,
                         Type = CrawlConsts.LeadType.LEADS,
                         IsUserSuppliedValue = false,
-                    });
+                    }, autoSave: true);
                 }
                 else
                 {
@@ -179,7 +179,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                         UserId = um.UserId,
                         Status = "New",
                         IsUserSuppliedValue = false,
-                    });
+                    }, autoSave: true);
                 }
                 else
                 {

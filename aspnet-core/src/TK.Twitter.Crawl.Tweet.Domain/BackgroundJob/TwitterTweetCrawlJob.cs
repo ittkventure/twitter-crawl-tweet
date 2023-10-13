@@ -106,6 +106,7 @@ namespace TK.Twitter.Crawl.Jobs
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(TwitterTweetCrawlJobArg args)
         {
+            bool shouldRun = false;
             await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"TwitterFollowingCrawlJob_{args.BatchKey}_{args.TwitterAccountId}"))
             {
                 if (handle == null)
@@ -113,6 +114,8 @@ namespace TK.Twitter.Crawl.Jobs
                     Logger.LogInformation(LOG_PREFIX + "Some process is running!!!");
                     return;
                 }
+
+                shouldRun = true;
 
                 using var uow = _unitOfWorkManager.Begin();
                 try
@@ -358,7 +361,10 @@ namespace TK.Twitter.Crawl.Jobs
                 }
             }
 
-            await _backgroundJobManager.EnqueueAsync(args);
+            if (shouldRun)
+            {
+                await _backgroundJobManager.EnqueueAsync(args);
+            }
         }
 
         public async Task AddTweet(string userId, string tweetId, string jsonContent, string kolTags, string batchKey)
@@ -585,6 +591,12 @@ namespace TK.Twitter.Crawl.Jobs
                             continue;
                         }
 
+                        // loại bỏ thằng này vì tự tag mình vào các bài listing cmc/cgk
+                        if (item.UserId == "1456211881035644935")
+                        {
+                            continue;
+                        }
+
                         var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
                         if (signals.IsNotEmpty())
                         {
@@ -615,7 +627,7 @@ namespace TK.Twitter.Crawl.Jobs
                                     UserId = item.UserId,
                                     Type = CrawlConsts.LeadType.LEADS,
                                     IsUserSuppliedValue = false,
-                                });
+                                }, autoSave: true);
                             }
                             else
                             {
@@ -634,7 +646,7 @@ namespace TK.Twitter.Crawl.Jobs
                                     UserId = item.UserId,
                                     Status = "New",
                                     IsUserSuppliedValue = false,
-                                });
+                                }, autoSave: true);
                             }
                             else
                             {
@@ -647,19 +659,12 @@ namespace TK.Twitter.Crawl.Jobs
                         }
                     }
                 }
-
-
             }
         }
 
         public static IEnumerable<string> GetSignals(string kolUserId, string tweetDescription, string kolTags, IEnumerable<string> hashTags)
         {
-
-
-            if (tweetDescription == null)
-            {
-                tweetDescription = string.Empty;
-            }
+            tweetDescription ??= string.Empty;
 
             List<string> signals = new();
             if (kolTags.IsNotEmpty())
@@ -825,6 +830,22 @@ namespace TK.Twitter.Crawl.Jobs
                     if (check)
                     {
                         signals.Add(CrawlConsts.Signal.UPCOMMING_TOKEN_SALE);
+                    }
+                }
+
+                if (kolTags.Contains("cmc_cg_new_listing"))
+                {
+                    if (kolUserId == "1688991175867502593")
+                    {
+                        if (hashTags.Contains("Coingecko") || hashTags.Contains("coingecko"))
+                        {
+                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO);
+                        }
+
+                        if (hashTags.Contains("Coinmarketcap") || hashTags.Contains("coinmarketcap"))
+                        {
+                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP);
+                        }
                     }
                 }
             }

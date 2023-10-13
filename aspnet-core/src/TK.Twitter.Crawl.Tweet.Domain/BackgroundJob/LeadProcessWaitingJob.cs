@@ -355,8 +355,17 @@ namespace TK.Twitter.Crawl.Jobs
                 var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == item.UserId);
                 leadOfAt.Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(",");
 
+                bool useManualSource;
                 var record = await _airTableManualSourceRepository.FirstOrDefaultAsync(x => x.RecordId == item.RecordId);
-                bool useManualSource = record.LastestSignalTime > leadOfTs.LastestSponsoredDate;
+                if (record == null)
+                {
+                    useManualSource = false;
+                }
+                else
+                {
+                    useManualSource = record.LastestSignalTime > leadOfTs.LastestSponsoredDate;
+                }
+
                 if (useManualSource)
                 {
                     leadOfAt.LastestSponsoredDate = record.LastestSignalTime;

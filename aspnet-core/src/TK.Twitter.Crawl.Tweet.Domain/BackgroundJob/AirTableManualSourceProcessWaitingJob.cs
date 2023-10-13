@@ -167,7 +167,7 @@ namespace TK.Twitter.Crawl.Jobs
                                             UserId = user.Id,
                                             Type = CrawlConsts.LeadType.LEADS,
                                             IsUserSuppliedValue = false,
-                                        });
+                                        }, autoSave: true);
                                     }
 
                                     // nếu không có thì thêm mới
@@ -179,7 +179,7 @@ namespace TK.Twitter.Crawl.Jobs
                                             UserId = user.Id,
                                             Status = "New",
                                             IsUserSuppliedValue = false,
-                                        });
+                                        }, autoSave: true);
                                     }
 
                                     await _leadWaitingProcessRepository.InsertAsync(new LeadWaitingProcessEntity()

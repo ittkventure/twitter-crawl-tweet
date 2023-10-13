@@ -193,7 +193,7 @@ namespace TK.Twitter.Crawl.Twitter
                         UserId = userId,
                         Status = status,
                         IsUserSuppliedValue = true
-                    });
+                    }, autoSave: true);
                 }
                 else
                 {
@@ -219,7 +219,7 @@ namespace TK.Twitter.Crawl.Twitter
                         UserId = userId,
                         Type = type,
                         IsUserSuppliedValue = true
-                    });
+                    }, autoSave: true);
                 }
                 else
                 {

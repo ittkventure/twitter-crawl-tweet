@@ -207,6 +207,25 @@ namespace TK.Twitter.Crawl.Tweet
 
                 item.LastestSponsoredTweetUrl = "https://twitter.com/_/status/" + item.LastestTweetId; // url k cần quan tâm đên username nên thay bằng _
 
+                // Nếu signal đến từ user thông báo listing CGK/CMK thì xử lý lại Signal From, Description, SignalUrl
+                if (item.TweetOwnerUserId == CrawlConsts.TwitterUser.BOT_NEW_LISTING_CMC_CGK_USER_ID)
+                {
+                    if (item.HashTags.Any(ht => ht.EqualsIgnoreCase("coingecko")))
+                    {
+                        item.MediaMentioned = "Coingecko";
+                        item.LastestSponsoredTweetUrl = "https://www.coingecko.com/en/new-cryptocurrencies";
+                        item.TweetDescription = "Just listed in Coingecko";
+                        item.TweetOwnerUserId = null;
+                    }
+                    else if (item.HashTags.Any(ht => ht.EqualsIgnoreCase("coinmarketcap")))
+                    {
+                        item.MediaMentioned = "Coinmarketcap";
+                        item.LastestSponsoredTweetUrl = "https://coinmarketcap.com/new/";
+                        item.TweetDescription = "Just listed in Coinmarketcap";
+                        item.TweetOwnerUserId = null;
+                    }
+                }
+
                 var itemSignals = signals.Where(x => x.UserId == item.UserId);
                 item.NumberOfSponsoredTweets = itemSignals.Count();
                 item.Signals = itemSignals.Select(x => x.Signal).Distinct().ToList();
@@ -258,7 +277,7 @@ namespace TK.Twitter.Crawl.Tweet
                                      join signal in signalQuery on tweet.TweetId equals signal.TweetId
                                      where userIds.Contains(signal.UserId)
                                      && mentionQuery.Any(mention => mention.UserId == signal.UserId && mention.TweetId == tweet.TweetId)
-                                     select new { UserId = signal.UserId, Owner = tweet.UserScreenName, Signal = signal.Signal };
+                                     select new { UserId = signal.UserId, Owner = tweet.UserScreenName, OwnerId = tweet.UserId, Signal = signal.Signal };
 
             var anotherSignals = await AsyncExecuter.ToListAsync(anotherSignalQuery);
 
@@ -267,19 +286,18 @@ namespace TK.Twitter.Crawl.Tweet
                 from s in signalQuery
                 join ms in manualSourceQuery on s.AirTableRecordId equals ms.RecordId
                 where s.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE && userIds.Contains(s.UserId)
-                select new { UserId = s.UserId, Owner = ms.LastestSignalFrom, Signal = s.Signal }
+                select new { UserId = s.UserId, Owner = ms.LastestSignalFrom, OwnerId = ms.UserId, Signal = s.Signal }
                 );
 
             var signals = anotherSignals.Union(manualSourceSignals).ToList();
 
             foreach (var userId in userIds)
             {
-
                 var anotherSignal = signals.Where(x => x.UserId == userId).ToList();
                 if (anotherSignal.IsNotEmpty())
                 {
                     var sb = new StringBuilder();
-                    var groupBy = anotherSignal.GroupBy(x => new { x.UserId, x.Signal, x.Owner }).Select(x => new { x.Key, Count = x.Count() });
+                    var groupBy = anotherSignal.GroupBy(x => new { x.UserId, x.Signal, x.Owner, x.OwnerId }).Select(x => new { x.Key, Count = x.Count() });
                     foreach (var gb in groupBy)
                     {
                         if (sb.Length > 0)
@@ -293,11 +311,17 @@ namespace TK.Twitter.Crawl.Tweet
                             continue;
                         }
 
-                        //Audit is completed @ solidproof
-                        sb.Append($"● {signal} @ {gb.Key.Owner}");
-                        if (gb.Count > 1)
+                        if (gb.Key.OwnerId == CrawlConsts.TwitterUser.BOT_NEW_LISTING_CMC_CGK_USER_ID) // Đây là tài khoản Crawl signal new listing CGK/CMC
                         {
-                            sb.Append($" {gb.Count} times");
+                            sb.Append($"● {signal}");
+                        }
+                        else
+                        {
+                            sb.Append($"● {signal} @ {gb.Key.Owner}");
+                            if (gb.Count > 1)
+                            {
+                                sb.Append($" {gb.Count} times");
+                            }
                         }
                     }
                     dict.Add(userId, sb.ToString());

@@ -592,7 +592,7 @@ namespace TK.Twitter.Crawl.Jobs
                         }
 
                         // loại bỏ thằng này vì tự tag mình vào các bài listing cmc/cgk
-                        if (item.UserId == "1456211881035644935")
+                        if (item.UserId == CrawlConsts.TwitterUser.BOT_OWNER_NEW_LISTING_CMC_CGK_USER_ID)
                         {
                             continue;
                         }

@@ -124,4 +124,10 @@ public static class CrawlConsts
         }
 
     }
+
+    public static class TwitterUser
+    {
+        public const string BOT_OWNER_NEW_LISTING_CMC_CGK_USER_ID = "1456211881035644935";
+        public const string BOT_NEW_LISTING_CMC_CGK_USER_ID = "1688991175867502593";
+    }
 }

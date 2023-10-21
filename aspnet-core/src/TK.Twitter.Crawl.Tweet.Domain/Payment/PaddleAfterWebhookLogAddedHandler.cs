@@ -342,7 +342,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                 subject = "[Lead3] You're Now a Premium Member";
             }
 
-            string setNewPasswordUrl = "https://lead3.io/user/change-password?token=" + token;
+            string setNewPasswordUrl = $"https://lead3.io/user/change-password?email={email}&token=" + token;
 
             await _emailSender.SendAsync(email,
                 subject,

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TK.Twitter.Crawl.Twitter
+namespace TK.Twitter.Crawl.Tweet.Twitter.Dto
 {
     public class TweetDto
     {

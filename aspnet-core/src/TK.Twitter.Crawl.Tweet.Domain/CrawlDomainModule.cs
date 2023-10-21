@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using TK.Paddle.Domain;
 using TK.Telegram.BackgroundJobs;
 using TK.Telegram.Domain;
 using TK.Twitter.Crawl.MultiTenancy;
 using TK.Twitter.Crawl.Options;
+using TK.Twitter.Crawl.Tweet.Email;
 using TK.TwitterAccount.Domain;
 using Volo.Abp.AuditLogging;
 using Volo.Abp.BackgroundJobs;
@@ -38,7 +40,8 @@ namespace TK.Twitter.Crawl;
 
     typeof(TwitterAccountDomainModule),
     typeof(TelegramDomainModule),
-    typeof(TelegramBackgroundJobsModule)
+    typeof(TelegramBackgroundJobsModule),
+    typeof(PaddleDomainModule)
 )]
 public class CrawlDomainModule : AbpModule
 {
@@ -59,6 +62,8 @@ public class CrawlDomainModule : AbpModule
 
 #if DEBUG
         context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, NullEmailSender>());
+#else
+        context.Services.Replace(ServiceDescriptor.Singleton<IEmailSender, CustomEmailSender>());
 #endif
     }
 }

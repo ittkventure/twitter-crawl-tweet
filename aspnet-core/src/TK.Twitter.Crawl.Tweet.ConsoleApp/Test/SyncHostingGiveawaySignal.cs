@@ -15,6 +15,7 @@ using static Volo.Abp.Identity.IdentityPermissions;
 
 namespace TK.Twitter.Crawl.ConsoleApp.Test
 {
+
     public class SyncHostingGiveawaySignal : ITransientDependency
     {
         private readonly IRepository<TwitterTweetHashTagEntity, long> _twitterTweetHashTagRepository;
@@ -63,15 +64,21 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
         public async Task RunAsync()
         {
-            var dbLeads = await _leadRepository.GetListAsync();
+            var query = from q in await _twitterUserSignalRepository.GetQueryableAsync()
+                        where q.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP || q.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO
+                        select q.UserId;
 
+            query = query.Distinct();
+
+            var userIds = await _airTableLeadRecordMappingRepository.AsyncExecuter.ToListAsync(query);
+            
             // để job tự update
-            foreach (var lead in dbLeads)
+            foreach (var userId in userIds)
             {
                 await _leadWaitingProcessRepository.InsertAsync(new LeadWaitingProcessEntity()
                 {
                     BatchKey = "UPDATE_OTHER_SIGNAL_COL",
-                    UserId = lead.UserId,
+                    UserId = userId,
                     Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                 });
             }

@@ -36,6 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\modules\paddle\TK.Paddle.Domain\TK.Paddle.Domain.csproj" />
 		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj" />
 		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />
 		<ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.Domain\TK.TwitterAccount.Domain.csproj" />

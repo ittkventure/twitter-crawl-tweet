@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\modules\paddle\TK.Paddle.Domain.Shared\TK.Paddle.Domain.Shared.csproj" />
     <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain.Shared\TK.Telegram.Domain.Shared.csproj" />
     <ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.Domain.Shared\TK.TwitterAccount.Domain.Shared.csproj" />
   </ItemGroup>

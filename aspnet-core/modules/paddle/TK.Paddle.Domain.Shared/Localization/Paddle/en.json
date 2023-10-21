@@ -1,0 +1,9 @@
+{
+  "culture": "en",
+  "texts": {
+    "Paddle:00000": "Unexpected exception",
+    "Paddle:00001": "Generate link failed",
+    "Paddle:00002": "User has another payment process",
+    "Paddle:00003": "Request cancel subsciption failed"
+  }
+}

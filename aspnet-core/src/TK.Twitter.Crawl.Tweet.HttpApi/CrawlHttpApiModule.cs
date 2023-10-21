@@ -1,4 +1,5 @@
 ﻿using Localization.Resources.AbpUi;
+using TK.Paddle.HttpApi;
 using TK.Twitter.Crawl.Localization;
 using Volo.Abp.Account;
 using Volo.Abp.FeatureManagement;
@@ -18,7 +19,8 @@ namespace TK.Twitter.Crawl;
     typeof(AbpPermissionManagementHttpApiModule),
     typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpFeatureManagementHttpApiModule),
-    typeof(AbpSettingManagementHttpApiModule)
+    typeof(AbpSettingManagementHttpApiModule),
+    typeof(PaddleHttpApiModule)
     )]
 public class CrawlHttpApiModule : AbpModule
 {

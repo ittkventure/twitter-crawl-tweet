@@ -1,4 +1,5 @@
-﻿using Volo.Abp.Account;
+﻿using TK.Paddle.Application;
+using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
@@ -17,7 +18,9 @@ namespace TK.Twitter.Crawl;
     typeof(AbpPermissionManagementApplicationModule),
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpFeatureManagementApplicationModule),
-    typeof(AbpSettingManagementApplicationModule)
+    typeof(AbpSettingManagementApplicationModule),
+
+    typeof(PaddleApplicationModule)
     )]
 public class CrawlApplicationModule : AbpModule
 {

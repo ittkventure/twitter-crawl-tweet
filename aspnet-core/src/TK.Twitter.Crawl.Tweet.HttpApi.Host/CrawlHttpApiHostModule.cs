@@ -34,6 +34,7 @@ using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.BackgroundJobs.Hangfire;
 using Volo.Abp.DistributedLocking;
+using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.Timing;
@@ -52,7 +53,8 @@ namespace TK.Twitter.Crawl;
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule),
 
-    typeof(AbpBackgroundJobsHangfireModule)
+    typeof(AbpBackgroundJobsHangfireModule),
+    typeof(AbpEventBusRabbitMqModule)
 )]
 public class CrawlHttpApiHostModule : AbpModule
 {
@@ -248,7 +250,7 @@ public class CrawlHttpApiHostModule : AbpModule
         app.UseCors();
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
-        app.UseApiKeyAuthorization();
+        //app.UseApiKeyAuthorization();
 
         if (MultiTenancyConsts.IsEnabled)
         {

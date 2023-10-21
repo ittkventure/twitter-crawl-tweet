@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TK.Paddle.Domain.Entity;
+using TK.Paddle.EntityFrameworkCore;
 using TK.Telegram.Domain.Entities;
 using TK.Telegram.EntityFrameworkCore;
 using TK.Twitter.Crawl.Entity;
@@ -29,7 +31,8 @@ public class CrawlDbContext :
     IIdentityDbContext,
     ITenantManagementDbContext,
     ITwitterAccountDbContext,
-    ITelegramDbContext
+    ITelegramDbContext,
+    IPaddleDbContext
 {
     /* Add DbSet properties for your Aggregate Roots / Entities here. */
 
@@ -85,6 +88,16 @@ public class CrawlDbContext :
     public DbSet<TwitterUserEntity> TwitterUserEntities { get; set; }
     public DbSet<AirTableManualSourceEntity> AirTableManualSourceEntities { get; set; }
     public DbSet<AirTableManualSourceWaitingProcessEntity> AirTableManualSourceWaitingProcessEntities { get; set; }
+    public DbSet<PaddleWebhookProcessEntity> PaddleWebhookProcessEntities { get; set; }
+    public DbSet<PaddleWebhookLogEntity> PaddleWebhookLogEntities { get; set; }
+    public DbSet<PaymentOrderEntity> PaymentOrderEntities { get; set; }
+    public DbSet<PaymentOrderPayLinkEntity> PaymentOrderPayLinkEntities { get; set; }
+    public DbSet<UserPlanEntity> UserPlanEntities { get; set; }
+    public DbSet<UserPlanPaddleSubscriptionEntity> UserPlanPaddleSubscriptionEntities { get; set; }
+    public DbSet<UserPlanUpgradeHistoryEntity> UserPlanUpgradeHistoryEntities { get; set; }
+    public DbSet<UserPlanCancelationSurveyEntity> UserPlanCancelationSurveyEntities { get; set; }
+    public DbSet<EmailLogEntity> EmailLogEntities { get; set; }
+
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
         : base(options)
@@ -108,6 +121,10 @@ public class CrawlDbContext :
         builder.ConfigureTenantManagement();
         builder.ConfigureTwitterAccount();
         builder.ConfigureTelegramManagement();
+
+        builder.ConfigurePaddleManagement();
+        builder.ConfigurePaymentManagment();
+        builder.ConfigureUserManagment();
 
         /* Configure your own tables/entities inside here */
 
@@ -383,5 +400,18 @@ public class CrawlDbContext :
             b.HasIndex(x => x.RecordId);
         });
 
+        builder.Entity<EmailLogEntity>(b =>
+        {
+            b.ToTable("email_log");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.To).HasMaxLength(256).IsRequired();
+            b.Property(x => x.Bcc).HasMaxLength(1024);
+            b.Property(x => x.Cc).HasMaxLength(1024);
+            b.Property(x => x.Subject).HasMaxLength(1024);
+
+            b.HasIndex(x => new { x.To });
+            b.HasIndex(x => new { x.Ended, x.Succeeded });
+        });
     }
 }

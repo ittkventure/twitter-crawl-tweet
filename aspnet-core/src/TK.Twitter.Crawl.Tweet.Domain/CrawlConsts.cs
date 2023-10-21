@@ -1,5 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using Volo.Abp;
 
 namespace TK.Twitter.Crawl;
 
@@ -129,5 +133,103 @@ public static class CrawlConsts
     {
         public const string BOT_OWNER_NEW_LISTING_CMC_CGK_USER_ID = "1456211881035644935";
         public const string BOT_NEW_LISTING_CMC_CGK_USER_ID = "1688991175867502593";
+    }
+
+    public static class Payment
+    {
+        public const string FREE = "FREE";
+        public const string LEAD3_STD_MONTHLY = "StandardMonthly";
+        public const string LEAD3_STD_ANNUALLY = "StandardAnnually";
+        public const string LEAD3_PRE_MONTHLY = "PremiumMonthly";
+        public const string LEAD3_PRE_ANNUALLY = "PremiumAnnually";
+
+        public static bool CheckValid(string planKey)
+        {
+            switch (planKey)
+            {
+                case LEAD3_STD_MONTHLY:
+                case LEAD3_STD_ANNUALLY:
+                case LEAD3_PRE_MONTHLY:
+                case LEAD3_PRE_ANNUALLY:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static List<string> PAID_PLAN = new List<string>() { LEAD3_STD_MONTHLY, LEAD3_STD_ANNUALLY, LEAD3_PRE_MONTHLY, LEAD3_PRE_ANNUALLY };
+
+        public class PlanConfig
+        {
+            public string Key { get; set; }
+            public long Id { get; set; }
+            public int RecurringIntervalMonth { get; set; }
+            public decimal Price { get; set; }
+        }
+
+        public static List<PlanConfig> Plans = new List<PlanConfig>();
+
+        public static void LoadPlan(IConfiguration configuration)
+        {
+            if (Plans.IsNotEmpty())
+            {
+                return;
+            }
+
+            var planconfigs = configuration.GetSection("RemoteServices:Paddle:Plans");
+            foreach (var cfg in planconfigs.GetChildren())
+            {
+                var planConfig = new PlanConfig()
+                {
+                    Key = cfg.Key,
+                    Id = cfg.GetValue<long>("PlanId"),
+                    Price = cfg.GetValue<decimal>("Price"),
+                    RecurringIntervalMonth = cfg.GetValue<int>("RecurringInterval"),
+                };
+
+                Plans.Add(planConfig);
+            }
+        }
+
+        public static long GetPlanId(string planKey, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            return plan.Id;
+        }
+
+        public static string GetPlanKey(long planId, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Id == planId);
+            return plan.Key;
+        }
+
+        public static bool IsStdPlan(long planId, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Id == planId);
+            return plan.Key == LEAD3_STD_MONTHLY || plan.Key == LEAD3_STD_ANNUALLY;
+        }
+
+        public static decimal GetPlanPrice(string planKey, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            return plan.Price;
+        }
+
+        internal static DateTime GetPlanExpiredAt(string planKey, DateTime now, int paddingHours, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            return now.AddMonths(plan.RecurringIntervalMonth).AddHours(paddingHours);
+        }
+
+        public static class Type
+        {
+            public const string CANCEL = "CANCEL";
+            public const string UPGRADE_OR_RENEWAL = "UPGRADE_OR_RENEWAL";
+        }
     }
 }

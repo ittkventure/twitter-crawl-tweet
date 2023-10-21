@@ -1,4 +1,5 @@
-﻿using TK.Telegram.Domain.Shared;
+﻿using TK.Paddle.Domain.Shared;
+using TK.Telegram.Domain.Shared;
 using TK.Twitter.Crawl.Localization;
 using TK.TwitterAccount.Domain.Shared;
 using Volo.Abp.AuditLogging;
@@ -28,7 +29,8 @@ namespace TK.Twitter.Crawl;
     typeof(AbpTenantManagementDomainSharedModule),
 
     typeof(TwitterAccountDomainSharedModule),
-    typeof(TelegramDomainSharedModule)
+    typeof(TelegramDomainSharedModule),
+    typeof(PaddleDomainSharedModule)
     )]
 public class CrawlDomainSharedModule : AbpModule
 {

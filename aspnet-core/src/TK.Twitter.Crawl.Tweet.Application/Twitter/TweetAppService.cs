@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Authorization;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -8,11 +9,14 @@ using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.Tweet;
+using TK.Twitter.Crawl.Tweet.Twitter.Dto;
 using Volo.Abp.Domain.Repositories;
 
 namespace TK.Twitter.Crawl.Twitter
 {
-
+#if !DEBUG
+    [Authorize]
+#endif
     public class TweetAppService : CrawlAppService
     {
         private readonly IRepository<TwitterTweetEntity, long> _tweetRepository;

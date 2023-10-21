@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="7.0.2" />    
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ultils\TK.Ultil\TK.Ultil.csproj" />
+    <ProjectReference Include="..\TK.Paddle.Client\TK.Paddle.Client.csproj" />
+    <ProjectReference Include="..\TK.Paddle.Domain.Shared\TK.Paddle.Domain.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CacheItem\" />
+  </ItemGroup>
+
+</Project>

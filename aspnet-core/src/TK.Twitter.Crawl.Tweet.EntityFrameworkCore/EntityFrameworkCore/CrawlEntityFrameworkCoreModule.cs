@@ -14,6 +14,7 @@ using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.Dapper;
+using TK.Paddle.EntityFrameworkCore;
 
 namespace TK.Twitter.Crawl.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ namespace TK.Twitter.Crawl.EntityFrameworkCore;
     typeof(AbpFeatureManagementEntityFrameworkCoreModule),
 
     typeof(TwitterAccountEntityFrameworkCoreModule),
+    typeof(PaddleEntityFrameworkCoreModule),
     typeof(TelegramEntityFrameworkCoreModule)
     )]
 [DependsOn(typeof(AbpDapperModule))]

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Dapper" Version="7.2.1" />
+    <ProjectReference Include="..\..\modules\paddle\TK.Paddle.EntityFrameworkCore\TK.Paddle.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.EntityFrameworkCore\TK.Telegram.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\modules\twitter-account\TK.TwitterAccount.EntityFrameworkCore\TK.TwitterAccount.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\TK.Twitter.Crawl.Tweet.Domain\TK.Twitter.Crawl.Tweet.Domain.csproj" />

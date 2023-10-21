@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\modules\paddle\TK.Paddle.HttpApi\TK.Paddle.HttpApi.csproj" />
     <ProjectReference Include="..\TK.Twitter.Crawl.Tweet.Application.Contracts\TK.Twitter.Crawl.Tweet.Application.Contracts.csproj" />
   </ItemGroup>
 

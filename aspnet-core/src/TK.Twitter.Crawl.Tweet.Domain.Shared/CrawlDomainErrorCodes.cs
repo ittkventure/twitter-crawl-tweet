@@ -4,7 +4,7 @@ public static class CrawlDomainErrorCodes
 {
     /* You can add your business exception error codes here, as constants */
 
-    public const string PREFIX = "AlphaQuest:";
+    public const string PREFIX = "Lead3:";
 
     /// <summary>
     /// This's common exception
@@ -85,5 +85,30 @@ public static class CrawlDomainErrorCodes
     /// UnExpected Error
     /// </summary>
     public static string TwitterUnexpectedError = PREFIX + "00106";
+
+    public static string UserNotFound = PREFIX + "00200";
+    public static string UserEmailAlreadyVerified = PREFIX + "00201";
+    public static string UserEmailNotProvided = PREFIX + "12002";
+    public static string UserConfirmEmailTokenInvalid = PREFIX + "12003";
+    public static string UserEmailConfirmed = PREFIX + "12004";
+    public static string UserEmailNotConfirmed = PREFIX + "12005";
+
+
+    public static string UserPlanPremiumPlanAlreadyExisted = PREFIX + "00400";
+    public static string UserPlanPremiumPlanNotExisted = PREFIX + "00401";
+    public static string UserPlanSubsciptionIdInvalid = PREFIX + "00402";
+    public static string UserPlanHasUsedTrialingBefore = PREFIX + "00403";
+    public static string UserPlanHasCancelPlanBefore = PREFIX + "00404";
+    public static string UserPlanPaymentMethodInvalid = PREFIX + "00405";
+    public static string UserPlanPaddleSubcriptionNotFound = PREFIX + "00406";
+    public static string UserPlanJustPremiumPlanCanUseFeature = PREFIX + "00407";
+
+
+    public static string PaymentOrderNotFound = PREFIX + "00500";
+    public static string PaymentOrderNotBelongToUser = PREFIX + "00501";
+    public static string PaymentCanNotParsePassthroughtData = PREFIX + "00502";
+    public static string PaymentInvalidPlan = PREFIX + "00503";
+    public static string PaymentPaymentMethodInvalid = PREFIX + "00504";
+    public static string PaymentOrderAlreadyCompleted = PREFIX + "00505";
 
 }

@@ -76,5 +76,28 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             }
         }
 
+        public async Task<bool> CheckOrderPaymentStatus(Guid id)
+        {
+            //// Chỉ nhưng user đã confirm email thì mới được thực hiện
+            //if (!await IsUserEmailConfirmed())
+            //{
+            //    throw new BusinessException(AlphaQuestDomainErrorCodes.UserEmailNotConfirmed);
+            //}
+
+            //CheckLogin();
+
+            var order = await _paymentOrderRepository.FirstOrDefaultAsync(x => x.OrderId == id);
+            if (order == null)
+            {
+                throw new BusinessException(CrawlDomainErrorCodes.PaymentOrderNotFound, "Order not found");
+            }
+
+            //if (order.UserId != CurrentUser.Id)
+            //{
+            //    throw new BusinessException(CrawlDomainErrorCodes.PaymentOrderNotBelongToUser, "Order not belong to user");
+            //}
+
+            return order.OrderStatusId == (int)PaymentOrderStatus.Completed;
+        }
     }
 }

@@ -66,7 +66,7 @@ namespace TK.Twitter.Crawl.Tweet.User
         /// <param name="userId"></param>
         /// <returns></returns>
         /// <exception cref="BusinessException"></exception>
-        public async Task<(bool, DateTime?)> CheckPremiumPlan(string email)
+        public async Task<(bool, DateTime?)> CheckPaidPlan(string email)
         {
             bool hasPremium = false;
             DateTime? expiredDate = null;

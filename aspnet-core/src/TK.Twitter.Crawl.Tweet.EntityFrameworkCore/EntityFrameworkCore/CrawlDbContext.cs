@@ -97,6 +97,7 @@ public class CrawlDbContext :
     public DbSet<UserPlanUpgradeHistoryEntity> UserPlanUpgradeHistoryEntities { get; set; }
     public DbSet<UserPlanCancelationSurveyEntity> UserPlanCancelationSurveyEntities { get; set; }
     public DbSet<EmailLogEntity> EmailLogEntities { get; set; }
+    public DbSet<Lead3UrlEntity> Lead3UrlEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -412,6 +413,15 @@ public class CrawlDbContext :
 
             b.HasIndex(x => new { x.To });
             b.HasIndex(x => new { x.Ended, x.Succeeded });
+        });
+
+        builder.Entity<Lead3UrlEntity>(b =>
+        {
+            b.ToTable("lead3_url");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Url).HasMaxLength(1024).IsRequired();
+            b.Property(x => x.Type).HasMaxLength(128);
         });
     }
 }

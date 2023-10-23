@@ -51,7 +51,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                     throw new BusinessException(CrawlDomainErrorCodes.AnOnGoingProcessHasNotBeenCompleted);
                 }
 
-                var (hasPremium, _) = await _userPlanManager.CheckPremiumPlan(email);
+                var (hasPremium, _) = await _userPlanManager.CheckPaidPlan(email);
                 if (hasPremium)
                 {
                     throw new BusinessException(CrawlDomainErrorCodes.UserPlanPremiumPlanAlreadyExisted, "User is on premium plan");

@@ -10,12 +10,14 @@ using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.Twitter.Dto;
+using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 
 namespace TK.Twitter.Crawl.Twitter
 {
 #if !DEBUG
     [Authorize]
+    [RemoteService(IsMetadataEnabled = false)]
 #endif
     public class TweetAppService : CrawlAppService
     {

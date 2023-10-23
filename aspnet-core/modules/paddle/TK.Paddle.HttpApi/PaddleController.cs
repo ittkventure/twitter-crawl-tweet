@@ -46,6 +46,19 @@ namespace TK.Paddle.HttpApi
                 return "alert_name_missing";
             }
 
+            if (form.TryGetValue("subscription_plan_id", out var planId))
+            {
+                var handlePlanIds = Configuration.GetValue<string>("RemoteServices:Paddle:Webhook:HandlePlanIds").Split(",");
+                if (!handlePlanIds.Contains(planId.ToString()))
+                {
+                    return "unhandle_plan_id";
+                }
+            }
+            else
+            {
+                return "subscription_plan_id_invalid";
+            }
+
             var dict = new Dictionary<string, string>();
             foreach (var itemkey in form.Keys)
             {

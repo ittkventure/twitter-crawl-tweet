@@ -247,7 +247,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             }
 
             var currentPlan = await _userPlanManager.GetCurrentPlan(CurrentUser.Id.Value);
-            var (hasPremium, expiredAt) = await _userPlanManager.CheckPremiumPlan(CurrentUser.Email);
+            var (hasPremium, expiredAt) = await _userPlanManager.CheckPaidPlan(CurrentUser.Email);
 
             if (hasPremium)
             {
@@ -316,7 +316,10 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 
             return token;
         }
+
     }
+
+
 
     public class AccountConfirmResetPasswordInputDto
     {

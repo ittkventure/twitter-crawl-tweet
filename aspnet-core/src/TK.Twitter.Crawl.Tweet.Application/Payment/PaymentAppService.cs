@@ -33,7 +33,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
         }
 
 #if DEBUG
-        public async Task<string> SubscribeAsync(string email = "hoangphihai93@gmail.com", string planKey = "PremiumAnnually")
+        public async Task<string> SubscribeAsync(string planKey = "PremiumAnnually")
 #else
         public async Task<string> SubscribeAsync(string email, string planKey)
 #endif
@@ -43,37 +43,21 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                 throw new BusinessException(CrawlDomainErrorCodes.NotFound, "Plan Key not found");
             }
 
-            var @lock = _distributedLockProvider.CreateLock($"__GetPayLink__{email}");
-            using (var handle = await @lock.TryAcquireAsync())
+            var now = Clock.Now;
+            var order = await _paymentOrderRepository.InsertAsync(new PaymentOrderEntity()
             {
-                if (handle == null)
-                {
-                    throw new BusinessException(CrawlDomainErrorCodes.AnOnGoingProcessHasNotBeenCompleted);
-                }
+                OrderId = GuidGenerator.Create(),
+                CreatedAt = now,
+                OrderStatusId = (int)PaymentOrderStatus.Created,
+                PaymentMethod = (int)PaymentMethod.Paddle
+            });
 
-                var (hasPremium, _) = await _userPlanManager.CheckPaidPlan(email);
-                if (hasPremium)
-                {
-                    throw new BusinessException(CrawlDomainErrorCodes.UserPlanPremiumPlanAlreadyExisted, "User is on premium plan");
-                }
+            var planId = CrawlConsts.Payment.GetPlanId(planKey, _configuration);
+            string payLink = await _paddlePaymentManager.GeneratePaylink(order.OrderId, planId);
 
-                var now = Clock.Now;
-                var order = await _paymentOrderRepository.InsertAsync(new PaymentOrderEntity()
-                {
-                    Email = email,
-                    OrderId = GuidGenerator.Create(),
-                    CreatedAt = now,
-                    OrderStatusId = (int)PaymentOrderStatus.Created,
-                    PaymentMethod = (int)PaymentMethod.Paddle
-                });
+            order.AddPayLink(payLink);
 
-                var planId = CrawlConsts.Payment.GetPlanId(planKey, _configuration);
-                string payLink = await _paddlePaymentManager.GeneratePaylink(order.OrderId, email, planId);
-
-                order.AddPayLink(payLink);
-
-                return payLink;
-            }
+            return payLink;
         }
 
         public async Task<bool> CheckOrderPaymentStatus(Guid id)

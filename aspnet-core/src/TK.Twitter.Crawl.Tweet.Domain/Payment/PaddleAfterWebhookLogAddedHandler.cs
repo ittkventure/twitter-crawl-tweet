@@ -161,11 +161,6 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                     throw new BusinessException(CrawlDomainErrorCodes.PaymentOrderNotFound, "Order not found");
                 }
 
-                if (order.Email != input.Email)
-                {
-                    throw new BusinessException(CrawlDomainErrorCodes.PaymentOrderNotBelongToUser, "Order not belong to user");
-                }
-
                 if (order.PaymentMethod != (int)PaymentMethod.Paddle)
                 {
                     throw new BusinessException(CrawlDomainErrorCodes.PaymentPaymentMethodInvalid, "Payment method invalid");

@@ -99,13 +99,8 @@ namespace TK.Twitter.Crawl.Tweet.User
             return (hasPremium, expiredDate);
         }
 
-        public async Task<UserPlanEntity> UpgradeOrRenewalPlan(Guid userId, string planKey, int monthCount = 1, string historyRef = null)
+        public async Task<UserPlanEntity> UpgradeOrRenewalPlan(Guid userId, string planKey, string historyRef = null)
         {
-            if (monthCount <= 0)
-            {
-                throw new ArgumentException(nameof(monthCount));
-            }
-
             var hasUser = await _userRepository.AnyAsync(x => x.Id == userId);
             if (!hasUser)
             {
@@ -121,7 +116,7 @@ namespace TK.Twitter.Crawl.Tweet.User
 
             var now = Clock.Now;
 
-            var expiredAt = CrawlConsts.Payment.GetPlanExpiredAt(planKey, now, PADDING_HOURS, _configuration);
+            var recuringIntervalMonth = CrawlConsts.Payment.GetPlanRecurringIntervalMonth(planKey, _configuration);
 
             var currentPlan = await AsyncExecuter.FirstOrDefaultAsync(currentPlanQuery);
             if (currentPlan == null)
@@ -131,8 +126,8 @@ namespace TK.Twitter.Crawl.Tweet.User
                     UserId = userId,
                     PlanKey = planKey,
                     CreatedAt = now,
-                    ExpiredAt = expiredAt
-                };                
+                    ExpiredAt = Clock.Now.AddMonths(recuringIntervalMonth).AddHours(PADDING_HOURS)
+                };
                 currentPlan = await _userPlanRepository.InsertAsync(currentPlan, autoSave: true);
 
                 sendEmailWelcome = true;
@@ -142,8 +137,10 @@ namespace TK.Twitter.Crawl.Tweet.User
                 oldPlan = currentPlan.PlanKey;
                 sendEmailWelcome = oldPlan == CrawlConsts.Payment.FREE;
 
+                var currentTime = currentPlan.ExpiredAt > Clock.Now ? currentPlan.ExpiredAt : Clock.Now;
+
                 currentPlan.PlanKey = planKey;
-                currentPlan.ExpiredAt = Clock.Now.AddMonths(monthCount).AddHours(PADDING_HOURS);
+                currentPlan.ExpiredAt = currentTime.AddMonths(recuringIntervalMonth).AddHours(PADDING_HOURS);
                 currentPlan = await _userPlanRepository.UpdateAsync(currentPlan);
             }
 
@@ -155,7 +152,7 @@ namespace TK.Twitter.Crawl.Tweet.User
                 NewPlanKey = currentPlan.PlanKey,
                 CreatedAt = Clock.Now,
                 TimeAddedType = "MONTH",
-                TimeAdded = monthCount,
+                TimeAdded = recuringIntervalMonth,
                 NewExpiredTime = currentPlan.ExpiredAt,
                 Reference = historyRef
             });

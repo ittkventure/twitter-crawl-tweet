@@ -35,7 +35,7 @@ namespace TK.Paddle.Domain
             Configuration = configuration;
         }
 
-        public async Task<string> GeneratePaylink(Guid orderId, string userEmail, long planId)
+        public async Task<string> GeneratePaylink(Guid orderId, long planId)
         {
             var webhookUrl = WebhookUrl;
             var returnUrlPattern = ReturnUrlPattern;
@@ -59,7 +59,6 @@ namespace TK.Paddle.Domain
                     ReturnUrl = string.Format(returnUrlPattern, orderId),
                     Expires = expireDate.ToString(PaddleAPIServiceConst.DEFAULT_DATE_FORMAT),
                     Passthrough = GetPassthrough(orderId),
-                    CustomerEmail = userEmail,
                 });
 
                 payLink = response?.Response?.Url;

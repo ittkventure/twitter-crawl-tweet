@@ -229,11 +229,18 @@ public static class CrawlConsts
             return plan.Price;
         }
 
-        internal static DateTime GetPlanExpiredAt(string planKey, DateTime now, int paddingHours, IConfiguration configuration)
+        public static DateTime GetPlanExpiredAt(string planKey, DateTime now, int paddingHours, IConfiguration configuration)
         {
             LoadPlan(configuration);
             var plan = Plans.FirstOrDefault(x => x.Key == planKey);
             return now.AddMonths(plan.RecurringIntervalMonth).AddHours(paddingHours);
+        }
+
+        public static int GetPlanRecurringIntervalMonth(string planKey, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            return plan.RecurringIntervalMonth;
         }
 
         public static class Type

@@ -287,8 +287,6 @@ public class CrawlHttpApiHostModule : AbpModule
         app.UseAuditing();
         app.UseAbpSerilogEnrichers();
 
-        var config = context.ServiceProvider.GetService<IConfiguration>();
-
         app.UseHangfireDashboard(options: new DashboardOptions()
         {
 #if !DEBUG

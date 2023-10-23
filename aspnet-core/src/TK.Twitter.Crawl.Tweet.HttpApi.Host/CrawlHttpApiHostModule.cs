@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
@@ -8,6 +8,7 @@ using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -231,6 +232,19 @@ public class CrawlHttpApiHostModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
+
+        var config = context.ServiceProvider.GetService<IConfiguration>();
+
+        var host = config.GetValue<string>("App:Host");
+        // fix lỗi client app call request openid-configuration endpoint bị chuyển thành http
+        // https://github.com/IdentityServer/IdentityServer4/issues/4535
+        app.Use(async (ctx, next) =>
+        {
+            ctx.Request.Scheme = "https";
+            ctx.Request.Host = new HostString(host);
+
+            await next();
+        });
 
         if (env.IsDevelopment())
         {

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -63,12 +64,26 @@ public class CrawlHttpApiHostModule : AbpModule
     {
         PreConfigure<OpenIddictBuilder>(builder =>
         {
-            builder.AddValidation(options =>
+            builder.AddServer(config =>
+            {
+                config.SetAccessTokenLifetime(TimeSpan.FromDays(30));
+            }).AddValidation(options =>
             {
                 options.AddAudiences("Crawl");
                 options.UseLocalServer();
                 options.UseAspNetCore();
             });
+        });
+
+        context.Services.Configure<DataProtectionTokenProviderOptions>(o =>
+        {
+            o.Name = "30_MINS_TOKEN";
+            o.TokenLifespan = TimeSpan.FromMinutes(30);
+        });
+
+        PreConfigure<IdentityBuilder>(builder =>
+        {
+            builder.AddTokenProvider<DataProtectorTokenProvider<Volo.Abp.Identity.IdentityUser>>("30_MINS_TOKEN");
         });
     }
 

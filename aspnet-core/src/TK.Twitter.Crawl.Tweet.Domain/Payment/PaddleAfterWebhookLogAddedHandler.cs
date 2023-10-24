@@ -331,53 +331,50 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             // Tạo reset password để khi user redirect lại trang sẽ đến trang đổi mật khẩu luôn
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            string subject = "[Lead3] You're Now a Standard Member";
-            if (stdPlan)
-            {
-                subject = "[Lead3] You're Now a Premium Member";
-            }
-
-            string setNewPasswordUrl = $"https://lead3.io/user/change-password?email={email}&token=" + token;
-
-            await _emailSender.SendAsync(email,
-                subject,
-                $@"<p data-pm-slice=""1 1 []"">Hey,</p>
-<p>&nbsp;</p>
-<p>Awesome news - you are now a {(stdPlan ? "Standard" : "Premium")} Member of Lead3! We&rsquo;re thrilled to have you on board.</p>
-<p>&nbsp;</p>
-<p>Here&rsquo;s what you need to do next:</p>
-<ol class=""ProsemirrorEditor-list"">
-<li class=""ProsemirrorEditor-listItem"" data-list-indent=""1"" data-list-type=""numbered"">
-<p><strong>Set new password for your account</strong>: Follow this link to set password for your lead3 account {email} <br />Link: <a href=""{setNewPasswordUrl}"" target=""_blank"" rel=""noopener"">here</a></p>
-</li>
-<li class=""ProsemirrorEditor-listItem"" data-list-indent=""1"" data-list-type=""numbered"">
-<p><strong>Login to your account:</strong> After setting your password, login to your account using your new credentials</p>
-</li>
-<li class=""ProsemirrorEditor-listItem"" data-list-indent=""1"" data-list-type=""numbered"">
-<p><strong>Access the Lead Database:</strong> You'll find the leads database in your user page. Feel free to click on ""view larger version"" if you want to use that data in Airtable.</p>
-</li>
-</ol>
-<p>&nbsp;</p>
-<p>If you need any help using the list, have any questions, or wish to provide feedback and suggestions, please don&rsquo;t hesitate to reach out to our friendly Customer Service team.</p>
-<p>&nbsp;</p>
-<p><strong>We&rsquo;ll send the product updates from this email address:</strong></p>
-<ul>
-<li><a class=""ProsemirrorEditor-link"" href=""mailto:contact@lead3.io"">contact@lead3.io</a></li>
-</ul>
-<p>&nbsp;</p>
-<p>To ensure our emails don't end up in your Spam folder, please reply with ""OK"" to this email. It helps ensure you receive our updates. If this email ends up in your promotions or spam folder, kindly move it to your Primary inbox.</p>
-<p>&nbsp;</p>
-<p>Thank you for choosing Lead3. We're excited to be part of your journey in expanding your client and partner base.</p>
-<p>&nbsp;</p>
-<p>Your success is our success, and we encourage you to share your success stories with us if you win any deals from our leads.</p>
-<p>&nbsp;</p>
-<p>Best,</p>
-<p>The Lead3 team</p>");
+            await SendEmailWelCome(email, stdPlan, token);
 
             var uow = _unitOfWorkManager.Current;
             await uow.SaveChangesAsync();
 
             return user;
+        }
+
+        public async Task SendEmailWelCome(string email, bool stdPlan, string resetPwdToken)
+        {
+            string subject = "[Lead3] You're Now a Standard Member";
+            if (!stdPlan)
+            {
+                subject = "[Lead3] You're Now a Premium Member";
+            }
+
+            string setNewPasswordUrl = $"https://lead3.io/user/change-password?email={email}&token=" + resetPwdToken;
+
+            string html = $@"<p data-pm-slice=""""><span style=""font-size: 12pt;"">Hey,</span></p>
+<p><span style=""font-size: 12pt;"">Awesome news - you are now a {(stdPlan ? "Standard" : "Premium")} Member of Lead3! We&rsquo;re thrilled to have you on board.</span></p>
+<p><span style=""font-size: 12pt;"">Here&rsquo;s what you need to do next:</span></p>
+<ol class="""">
+<li class="""" data-list-indent="""" data-list-type="""">
+<p><span style=""font-size: 12pt;""><strong>Set new password for your account</strong>: Follow this link to set password for your lead3 account {email} </span><br /><span style=""font-size: 12pt;"">Link: <br /> <a target=""_blank"" href=""{setNewPasswordUrl}"" rel="""">{setNewPasswordUrl}</a></span></p>
+</li>
+<li class="""" data-list-indent="""" data-list-type="""">
+<p><span style=""font-size: 12pt;""><strong>Login to your account:</strong> After setting your password, login to your account using your new credentials</span></p>
+</li>
+<li class="""" data-list-indent="""" data-list-type="""">
+<p><span style=""font-size: 12pt;""><strong>Access the Lead Database:</strong> You'll find the leads database in your user page. Feel free to click on ""view larger version"" if you want to use that data in Airtable.</span></p>
+</li>
+</ol>
+<p><span style=""font-size: 12pt;"">If you need any help using the list, have any questions, or wish to provide feedback and suggestions, please don&rsquo;t hesitate to reach out to our friendly Customer Service team.</span></p>
+<p><span style=""font-size: 12pt;""><strong>We&rsquo;ll send the product updates from this email address:</strong></span></p>
+<ul>
+<li><span style=""font-size: 12pt;""><a href=""mailto:contact@lead3.io"">contact@lead3.io</a></span></li>
+</ul>
+<p><span style=""font-size: 12pt;"">To ensure our emails don't end up in your Spam folder, please reply with ""OK"" to this email. It helps ensure you receive our updates. If this email ends up in your promotions or spam folder, kindly move it to your Primary inbox.</span></p>
+<p><span style=""font-size: 12pt;"">Thank you for choosing Lead3. We're excited to be part of your journey in expanding your client and partner base.</span></p>
+<p><span style=""font-size: 12pt;"">Your success is our success, and we encourage you to share your success stories with us if you win any deals from our leads.</span></p>
+<p><span style=""font-size: 12pt;"">Best,</span></p>
+<p><span style=""font-size: 12pt;"">The Lead3 team</span></p>";
+
+            await _emailSender.SendAsync(email, subject, html);
         }
     }
 }

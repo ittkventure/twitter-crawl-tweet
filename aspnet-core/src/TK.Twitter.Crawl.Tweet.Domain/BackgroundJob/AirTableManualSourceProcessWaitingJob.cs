@@ -158,6 +158,7 @@ namespace TK.Twitter.Crawl.Jobs
                                         });
                                     }
 
+                                    // source từ manual source thì tự động sẽ là Lead. REF https://app.asana.com/0/1204183084369636/1205723036911441
                                     // nếu không có thì thêm mới
                                     var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == user.Id);
                                     if (userType == null)

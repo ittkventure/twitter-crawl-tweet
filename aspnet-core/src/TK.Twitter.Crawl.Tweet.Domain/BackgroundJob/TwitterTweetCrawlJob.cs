@@ -619,22 +619,25 @@ namespace TK.Twitter.Crawl.Jobs
                                 Source = CrawlConsts.Signal.Source.TWITTER_TWEET
                             });
 
-                            var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-                            if (userType == null)
+                            if (LeadProcessWaitingJob.IsLeadBySignalCode(signals))
                             {
-                                await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
+                                var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+                                if (userType == null)
                                 {
-                                    UserId = item.UserId,
-                                    Type = CrawlConsts.LeadType.LEADS,
-                                    IsUserSuppliedValue = false,
-                                }, autoSave: true);
-                            }
-                            else
-                            {
-                                if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
+                                    await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
+                                    {
+                                        UserId = item.UserId,
+                                        Type = CrawlConsts.LeadType.LEADS,
+                                        IsUserSuppliedValue = false,
+                                    }, autoSave: true);
+                                }
+                                else
                                 {
-                                    userType.Type = CrawlConsts.LeadType.LEADS;
-                                    await _twitterUserTypeRepository.UpdateAsync(userType);
+                                    if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
+                                    {
+                                        userType.Type = CrawlConsts.LeadType.LEADS;
+                                        await _twitterUserTypeRepository.UpdateAsync(userType);
+                                    }
                                 }
                             }
 

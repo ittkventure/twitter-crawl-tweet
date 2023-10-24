@@ -1,21 +1,17 @@
 ﻿using Medallion.Threading;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.AirTable;
-using TK.TwitterAccount.Domain.Dto;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
-using static System.Collections.Specialized.BitVector32;
 
 namespace TK.Twitter.Crawl.Jobs
 {
@@ -170,13 +166,19 @@ namespace TK.Twitter.Crawl.Jobs
                     var leads = await _lead3Manager.GetLeadsAsync(userIds: new List<string> { item.UserId });
                     var lead = leads.FirstOrDefault(x => x.UserId == item.UserId);
 
+                    string userType = null;
+                    if (IsLead(signals))
+                    {
+                        userType = CrawlConsts.LeadType.LEADS;
+                    }
+
                     var entity = await _leadRepository.InsertAsync(new LeadEntity()
                     {
                         UserId = lead.UserId,
                         UserName = lead.UserName,
                         UserScreenName = lead.UserScreenName,
                         UserProfileUrl = "https://twitter.com/" + lead.UserScreenName,
-                        UserType = CrawlConsts.LeadType.LEADS,
+                        UserType = userType,
                         UserStatus = "New",
                         Signals = lead.Signals?.JoinAsString(","),
                         LastestTweetId = lead.LastestTweetId,
@@ -238,6 +240,12 @@ namespace TK.Twitter.Crawl.Jobs
             bool b = otherSignal.TryGetValue(item.UserId, out string otherSignalValue);
             var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == item.UserId);
 
+            string userType = null;
+            if (IsLead(signals))
+            {
+                userType = CrawlConsts.LeadType.LEADS;
+            }
+
             switch (action)
             {
                 case "CREATE":
@@ -248,7 +256,7 @@ namespace TK.Twitter.Crawl.Jobs
                         UserName = record.UserName,
                         UserScreenName = record.UserScreenName,
                         UserProfileUrl = "https://twitter.com/" + record.UserScreenName,
-                        UserType = CrawlConsts.LeadType.LEADS,
+                        UserType = userType,
                         UserStatus = "New",
                         Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(","),
 
@@ -400,6 +408,23 @@ namespace TK.Twitter.Crawl.Jobs
                 LeadId = leadOfAt.Id,
                 UserScreenName = leadOfAt.UserScreenName
             });
+        }
+
+        /// <summary>
+        /// ref: https://app.asana.com/0/1204183084369636/1205723036911441
+        /// Nếu nguồn từ manual source hoặc là signal listing cgk hoặc cmc thì là lead
+        /// </summary>
+        /// <param name="signals"></param>
+        /// <returns></returns>
+        public static bool IsLead(List<TwitterUserSignalEntity> signals)
+        {
+            return signals.Any(s => s.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE
+            || IsLeadBySignalCode(signals.Select(x => x.Signal)));
+        }
+
+        public static bool IsLeadBySignalCode(IEnumerable<string> signals)
+        {
+            return signals.Any(s => s == CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP || s == CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO);
         }
     }
 }

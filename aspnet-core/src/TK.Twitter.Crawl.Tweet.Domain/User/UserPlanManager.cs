@@ -78,7 +78,7 @@ namespace TK.Twitter.Crawl.Tweet.User
             }
 
             var query = from q in await _userPlanRepository.GetQueryableAsync()
-                        where q.UserId == user.Id && CrawlConsts.Payment.PAID_PLAN.Contains(q.PlanKey)
+                        where q.UserId == user.Id && (CrawlConsts.Payment.PAID_PLAN.Contains(q.PlanKey) || CrawlConsts.Payment.LEAD3_TRIAL == q.PlanKey)
                         select new { q.UserId, q.ExpiredAt };
 
             var currentPlan = await AsyncExecuter.FirstOrDefaultAsync(query);

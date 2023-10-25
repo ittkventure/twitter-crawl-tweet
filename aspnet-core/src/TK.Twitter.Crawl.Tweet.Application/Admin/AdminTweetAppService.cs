@@ -9,17 +9,17 @@ using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.Tweet;
-using TK.Twitter.Crawl.Tweet.Twitter.Dto;
+using TK.Twitter.Crawl.Tweet.Admin.Dto;
+using TK.Twitter.Crawl.Tweet.Payment;
+using TK.Twitter.Crawl.Tweet.User;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
+using Volo.Abp.Users;
 
-namespace TK.Twitter.Crawl.Twitter
+namespace TK.Twitter.Crawl.Tweet.Admin
 {
-#if !DEBUG
-    [Authorize]
-    [RemoteService(IsMetadataEnabled = false)]
-#endif
-    public class TweetAppService : CrawlAppService
+    public class AdminTweetAppService : CrawlAppService
     {
         private readonly IRepository<TwitterTweetEntity, long> _tweetRepository;
         private readonly IRepository<TwitterUserTypeEntity, long> _tweetUserTypeRepository;
@@ -32,8 +32,12 @@ namespace TK.Twitter.Crawl.Twitter
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly ITwitterTweetMentionDapperRepository _twitterTweetMentionDapperRepository;
         private readonly Lead3Manager _lead3Manager;
+        private readonly UserPlanManager _userPlanManager;
+        private readonly PaddleAfterWebhookLogAddedHandler _paddleAfterWebhookLogAddedHandler;
+        private readonly IRepository<IdentityUser, Guid> _userRepository;
+        private readonly IRepository<UserPlanEntity, Guid> _userPlanRepository;
 
-        public TweetAppService(
+        public AdminTweetAppService(
             IRepository<TwitterTweetEntity, long> tweetRepository,
             IRepository<TwitterUserTypeEntity, long> tweetUserTypeRepository,
             IRepository<TwitterUserStatusEntity, long> tweetUserStatusRepository,
@@ -44,7 +48,11 @@ namespace TK.Twitter.Crawl.Twitter
             IRepository<TwitterTweetHashTagEntity, long> tweetHashTagRepository,
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository,
-            Lead3Manager lead3Manager)
+            Lead3Manager lead3Manager,
+            UserPlanManager userPlanManager,
+            PaddleAfterWebhookLogAddedHandler paddleAfterWebhookLogAddedHandler,
+            IRepository<IdentityUser, Guid> userRepository,
+            IRepository<UserPlanEntity, Guid> userPlanRepository)
         {
             _tweetRepository = tweetRepository;
             _tweetUserTypeRepository = tweetUserTypeRepository;
@@ -57,7 +65,13 @@ namespace TK.Twitter.Crawl.Twitter
             _twitterUserSignalRepository = twitterUserSignalRepository;
             _twitterTweetMentionDapperRepository = twitterTweetMentionDapperRepository;
             _lead3Manager = lead3Manager;
+            _userPlanManager = userPlanManager;
+            _paddleAfterWebhookLogAddedHandler = paddleAfterWebhookLogAddedHandler;
+            _userRepository = userRepository;
+            _userPlanRepository = userPlanRepository;
         }
+
+        #region Lead3
 
         public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(
             int pageNumber,
@@ -237,5 +251,96 @@ namespace TK.Twitter.Crawl.Twitter
 
             return "success";
         }
+
+        #endregion
+
+        #region subscriptions
+
+        public async Task<PagingResult<SubcriberDto>> GetSubscriberListAsync(int pageNumber, int pageSize, string searchText, string sortBy)
+        {
+            if (pageNumber <= 0)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize <= 0)
+            {
+                pageSize = 50;
+            }
+
+            var query = from up in await _userPlanRepository.GetQueryableAsync()
+                        join u in await _userRepository.GetQueryableAsync() on up.UserId equals u.Id
+                        select new SubcriberDto()
+                        {
+                            UserId = u.Id,
+                            Email = u.Email,
+                            Plan = up.PlanKey,
+                            SubscribedEndDate = up.ExpiredAt,
+                            CreationTime = u.CreationTime
+                        };
+
+            var pagingResult = new PagingResult<SubcriberDto>();
+            query = query.WhereIf(searchText.IsNotEmpty(), x => x.Email.Contains(searchText));
+            if (sortBy.IsEmpty())
+            {
+                query = query.OrderByDescending(x => x.CreationTime);
+            }
+            else
+            {
+                if (sortBy.EqualsIgnoreCase("modification_time_lastest"))
+                {
+                    query = query.OrderByDescending(x => x.CreationTime);
+                }
+                else if (sortBy.EqualsIgnoreCase("modification_time_oldest"))
+                {
+                    query = query.OrderBy(x => x.CreationTime);
+                }
+            }
+
+            pagingResult.TotalCount = await AsyncExecuter.CountAsync(query);
+            if (pagingResult.TotalCount == 0)
+            {
+                return pagingResult;
+            }
+
+            pagingResult.Items = await AsyncExecuter.ToListAsync(
+                query.Skip((pageNumber - 1) * pageSize).Take(pageSize)
+                );
+
+            foreach (var item in pagingResult.Items)
+            {
+                if (item.Plan == CrawlConsts.Payment.FREE)
+                {
+                    item.SubscribedEndDate = null;
+                }
+                else if (item.SubscribedEndDate <= Clock.Now)
+                {
+                    item.SubscribedEndDate = null;
+                    item.Plan = CrawlConsts.Payment.FREE;
+                }
+            }
+
+            return pagingResult;
+        }
+
+        public async Task<string> AddSubscriber([Required] string email, string planKey)
+        {
+            if (!CrawlConsts.Payment.CheckValid(planKey))
+            {
+                throw new BusinessException(CrawlDomainErrorCodes.PaymentInvalidPlan, "Invalid plan");
+            }
+
+            var userAlreadyExist = await _userRepository.AnyAsync(x => x.NormalizedEmail == email.ToUpper());
+            if (userAlreadyExist)
+            {
+                throw new BusinessException(CrawlDomainErrorCodes.DuplicatedResource);
+            }
+
+            var user = await _paddleAfterWebhookLogAddedHandler.RegisterWithoutPasswordAsync(email, CrawlConsts.Payment.IsStandardPlan(planKey), autoSave: false);
+            await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, "from_cms=true");
+            return "success";
+        }
+
+        #endregion
     }
 }

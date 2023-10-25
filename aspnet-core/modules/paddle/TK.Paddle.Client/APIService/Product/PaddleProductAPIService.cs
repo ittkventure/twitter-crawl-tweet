@@ -133,7 +133,7 @@ namespace TK.Paddle.Client.APIService.Product
 
             if (input.Passthrough.IsNotEmpty())
             {
-                Check.Length(input.CouponCode, nameof(input.CouponCode), 1000);
+                Check.Length(input.Passthrough, nameof(input.Passthrough), 1000);
                 dataContent.Add("passthrough", input.Passthrough);
             }
 

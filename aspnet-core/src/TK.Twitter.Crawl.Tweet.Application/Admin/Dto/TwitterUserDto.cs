@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
-namespace TK.Twitter.Crawl.Twitter.Dto
+namespace TK.Twitter.Crawl.Tweet.Admin.Dto
 {
-    public class TwitterUserFollowingDto
+    public class TwitterUserDto
     {
         public string Id { get; set; }
 
@@ -26,12 +27,12 @@ namespace TK.Twitter.Crawl.Twitter.Dto
         /// </summary>
         public DateTime DiscoveredTime { get; set; }
 
-        public DateTime? FollowingTime { get; set; }
-
-        public int AtTimeUserFollowersCount { get; set; }
-
-        public int AtTimeUserTweetCount { get; set; }
-
         public TwitterUserMetricDto PublicMetric { get; set; }
+
+        public List<string> Urls { get; set; }
+
+        public bool IsUnavailable => UnavailableReason.IsNotEmpty();
+
+        public string UnavailableReason { get; set; }
     }
 }

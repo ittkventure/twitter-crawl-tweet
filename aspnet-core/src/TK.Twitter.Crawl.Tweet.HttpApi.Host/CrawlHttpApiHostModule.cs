@@ -279,7 +279,7 @@ public class CrawlHttpApiHostModule : AbpModule
         app.UseCors();
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
-        //app.UseApiKeyAuthorization();
+        app.UseApiKeyAuthorization();
 
         if (MultiTenancyConsts.IsEnabled)
         {

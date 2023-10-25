@@ -35,7 +35,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 #if DEBUG
         public async Task<string> SubscribeAsync(string planKey = "PremiumAnnually")
 #else
-        public async Task<string> SubscribeAsync(string email, string planKey)
+        public async Task<string> SubscribeAsync(string planKey)
 #endif
         {
             if (!CrawlConsts.Payment.CheckValid(planKey))

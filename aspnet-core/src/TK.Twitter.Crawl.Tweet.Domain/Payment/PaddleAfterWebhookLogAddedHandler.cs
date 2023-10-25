@@ -309,7 +309,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             await _paymentWebhookProcessRepository.UpdateAsync(processItem);
         }
 
-        public async Task<IdentityUser> RegisterWithoutPasswordAsync(string email, bool stdPlan)
+        public async Task<IdentityUser> RegisterWithoutPasswordAsync(string email, bool stdPlan, bool autoSave = true)
         {
             var emailAlreadyExist = await _userRepository.FirstOrDefaultAsync(x => x.NormalizedEmail == email.ToUpper());
             if (emailAlreadyExist != null)
@@ -333,8 +333,11 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 
             await SendEmailWelCome(email, stdPlan, token);
 
-            var uow = _unitOfWorkManager.Current;
-            await uow.SaveChangesAsync();
+            if (autoSave)
+            {
+                var uow = _unitOfWorkManager.Current;
+                await uow.SaveChangesAsync();
+            }
 
             return user;
         }

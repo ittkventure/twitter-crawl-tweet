@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TK.Twitter.Crawl.Twitter.Dto
+namespace TK.Twitter.Crawl.Tweet.Admin.Dto
 {
     public class TwitterUserChangeLogDto
     {

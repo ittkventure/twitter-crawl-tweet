@@ -38,7 +38,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
         public async Task<string> SubscribeAsync(string planKey)
 #endif
         {
-            if (!CrawlConsts.Payment.CheckValid(planKey))
+            if (!CrawlConsts.Payment.PAID_PLAN.Contains(planKey))
             {
                 throw new BusinessException(CrawlDomainErrorCodes.NotFound, "Plan Key not found");
             }

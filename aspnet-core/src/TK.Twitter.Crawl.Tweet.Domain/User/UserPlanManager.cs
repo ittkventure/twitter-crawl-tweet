@@ -128,6 +128,12 @@ namespace TK.Twitter.Crawl.Tweet.User
                     CreatedAt = now,
                     ExpiredAt = Clock.Now.AddMonths(recuringIntervalMonth).AddHours(PADDING_HOURS)
                 };
+
+                if (CrawlConsts.Payment.IsTrialPlan(planKey))
+                {
+                    currentPlan.ExpiredAt = Clock.Now.AddDays(3).AddHours(PADDING_HOURS);
+                }
+
                 currentPlan = await _userPlanRepository.InsertAsync(currentPlan, autoSave: true);
 
                 sendEmailWelcome = true;
@@ -141,6 +147,12 @@ namespace TK.Twitter.Crawl.Tweet.User
 
                 currentPlan.PlanKey = planKey;
                 currentPlan.ExpiredAt = currentTime.AddMonths(recuringIntervalMonth).AddHours(PADDING_HOURS);
+
+                if (CrawlConsts.Payment.IsTrialPlan(planKey))
+                {
+                    currentPlan.ExpiredAt = currentTime.AddDays(3).AddHours(PADDING_HOURS);
+                }
+
                 currentPlan = await _userPlanRepository.UpdateAsync(currentPlan);
             }
 

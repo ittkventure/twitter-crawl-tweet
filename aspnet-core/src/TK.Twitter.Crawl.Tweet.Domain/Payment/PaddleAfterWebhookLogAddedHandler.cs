@@ -344,6 +344,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 
         public async Task SendEmailWelCome(string email, bool stdPlan, string resetPwdToken)
         {
+            // nếu là plan trial thì vẫn nó tương đương với premium
             string subject = "[Lead3] You're Now a Standard Member";
             if (!stdPlan)
             {

@@ -53,6 +53,11 @@ namespace TK.Twitter.Crawl.Tweet.Lead3
                 dto.Url1 = urls.FirstOrDefault(x => x.Type == "STANDARD_THIS_MONTH").Url;
                 dto.Url2 = urls.FirstOrDefault(x => x.Type == "STANDARD_LAST_MONTH").Url;
             }
+            else if (CrawlConsts.Payment.IsTrialPlan(currentPlan.PlanKey))
+            {
+                dto.IsTrial = true;
+                dto.Url1 = urls.FirstOrDefault(x => x.Type == "TRIAL").Url;
+            }
 
             return dto;
         }
@@ -65,6 +70,8 @@ namespace TK.Twitter.Crawl.Tweet.Lead3
         public bool IsPremiumPlan { get; set; }
 
         public bool IsStandardPlan { get; set; }
+
+        public bool IsTrial { get; set; }
 
         public string Url1 { get; set; }
 

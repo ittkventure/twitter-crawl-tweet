@@ -142,6 +142,7 @@ public static class CrawlConsts
         public const string LEAD3_STD_ANNUALLY = "StandardAnnually";
         public const string LEAD3_PRE_MONTHLY = "PremiumMonthly";
         public const string LEAD3_PRE_ANNUALLY = "PremiumAnnually";
+        public const string LEAD3_TRIAL = "Trial";
 
         public static bool IsPremiumPlan(string key)
         {
@@ -153,10 +154,17 @@ public static class CrawlConsts
             return key == LEAD3_STD_ANNUALLY || key == LEAD3_STD_MONTHLY;
         }
 
+        public static bool IsTrialPlan(string key)
+        {
+            return key == LEAD3_TRIAL;
+        }
+
         public static bool CheckValid(string planKey)
         {
             switch (planKey)
             {
+                case FREE:
+                case LEAD3_TRIAL:
                 case LEAD3_STD_MONTHLY:
                 case LEAD3_STD_ANNUALLY:
                 case LEAD3_PRE_MONTHLY:

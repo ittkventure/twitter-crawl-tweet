@@ -66,7 +66,7 @@ public class CrawlHttpApiHostModule : AbpModule
         {
             builder.AddServer(config =>
             {
-                config.SetAccessTokenLifetime(TimeSpan.FromDays(30));
+                config.SetAccessTokenLifetime(TimeSpan.FromDays(365));
             }).AddValidation(options =>
             {
                 options.AddAudiences("Crawl");
@@ -77,13 +77,13 @@ public class CrawlHttpApiHostModule : AbpModule
 
         context.Services.Configure<DataProtectionTokenProviderOptions>(o =>
         {
-            o.Name = "30_MINS_TOKEN";
-            o.TokenLifespan = TimeSpan.FromMinutes(30);
+            o.Name = "365_DAYS_TOKEN";
+            o.TokenLifespan = TimeSpan.FromDays(365);
         });
 
         PreConfigure<IdentityBuilder>(builder =>
         {
-            builder.AddTokenProvider<DataProtectorTokenProvider<Volo.Abp.Identity.IdentityUser>>("30_MINS_TOKEN");
+            builder.AddTokenProvider<DataProtectorTokenProvider<Volo.Abp.Identity.IdentityUser>>("365_DAYS_TOKEN");
         });
     }
 

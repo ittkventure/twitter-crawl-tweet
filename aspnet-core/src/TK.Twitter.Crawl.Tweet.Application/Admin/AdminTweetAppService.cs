@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -36,6 +37,7 @@ namespace TK.Twitter.Crawl.Tweet.Admin
         private readonly PaddleAfterWebhookLogAddedHandler _paddleAfterWebhookLogAddedHandler;
         private readonly IRepository<IdentityUser, Guid> _userRepository;
         private readonly IRepository<UserPlanEntity, Guid> _userPlanRepository;
+        private readonly UserManager<IdentityUser> _userManager;
 
         public AdminTweetAppService(
             IRepository<TwitterTweetEntity, long> tweetRepository,
@@ -52,7 +54,8 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             UserPlanManager userPlanManager,
             PaddleAfterWebhookLogAddedHandler paddleAfterWebhookLogAddedHandler,
             IRepository<IdentityUser, Guid> userRepository,
-            IRepository<UserPlanEntity, Guid> userPlanRepository)
+            IRepository<UserPlanEntity, Guid> userPlanRepository,
+            UserManager<IdentityUser> userManager)
         {
             _tweetRepository = tweetRepository;
             _tweetUserTypeRepository = tweetUserTypeRepository;
@@ -69,6 +72,7 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             _paddleAfterWebhookLogAddedHandler = paddleAfterWebhookLogAddedHandler;
             _userRepository = userRepository;
             _userPlanRepository = userPlanRepository;
+            _userManager = userManager;
         }
 
         #region Lead3
@@ -323,7 +327,7 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             return pagingResult;
         }
 
-        public async Task<string> AddSubscriber([Required] string email, string planKey)
+        public async Task<string> AddSubscriber([Required] string email, [Required] string planKey)
         {
             if (!CrawlConsts.Payment.CheckValid(planKey))
             {
@@ -338,6 +342,19 @@ namespace TK.Twitter.Crawl.Tweet.Admin
 
             var user = await _paddleAfterWebhookLogAddedHandler.RegisterWithoutPasswordAsync(email, CrawlConsts.Payment.IsStandardPlan(planKey), autoSave: false);
             await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, "from_cms=true");
+            return "success";
+        }
+
+        public async Task<string> SendEmailWelcome([Required] string email, [Required] string planKey)
+        {
+            // Gửi email thông báo đăng ký thành công kèm link để đổi mật khẩu
+            var user = await _userManager.FindByEmailAsync(email);
+
+            // Tạo reset password để khi user redirect lại trang sẽ đến trang đổi mật khẩu luôn
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            await _paddleAfterWebhookLogAddedHandler.SendEmailWelCome(email, CrawlConsts.Payment.IsStandardPlan(planKey), token);
+
             return "success";
         }
 

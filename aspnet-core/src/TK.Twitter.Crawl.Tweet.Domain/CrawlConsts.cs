@@ -244,11 +244,16 @@ public static class CrawlConsts
             return now.AddMonths(plan.RecurringIntervalMonth).AddHours(paddingHours);
         }
 
-        public static int GetPlanRecurringIntervalMonth(string planKey, IConfiguration configuration)
+        public static (string, int) GetPlanRecurringIntervaL(string planKey, IConfiguration configuration)
         {
+            if (IsTrialPlan(planKey))
+            {
+                return ("DAY", 3);
+            }
+
             LoadPlan(configuration);
             var plan = Plans.FirstOrDefault(x => x.Key == planKey);
-            return plan.RecurringIntervalMonth;
+            return ("MONTH", plan.RecurringIntervalMonth);
         }
 
         public static class Type

@@ -341,7 +341,7 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             }
 
             var user = await _paddleAfterWebhookLogAddedHandler.RegisterWithoutPasswordAsync(email, CrawlConsts.Payment.IsStandardPlan(planKey), autoSave: false);
-            await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, "from_cms=true");
+            await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, paymentMethod: PaymentMethod.Unknown, "from_cms=true");
             return "success";
         }
 

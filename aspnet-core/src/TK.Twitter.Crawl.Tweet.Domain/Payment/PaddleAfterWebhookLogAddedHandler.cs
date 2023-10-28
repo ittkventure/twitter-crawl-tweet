@@ -142,7 +142,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             {
                 processItem = await _paymentWebhookProcessRepository.FirstOrDefaultAsync(x => x.AlertId == input.AlertId && x.AlertName == input.AlertName);
 
-                string planKey = CrawlConsts.Payment.GetPlanKey(input.SubscriptionPlanId, _configuration);
+                string planKey = CrawlConsts.Paddle.GetPaddlePlanKey(input.SubscriptionPlanId, _configuration);
 
                 if (!CrawlConsts.Payment.PAID_PLAN.Contains(planKey))
                 {
@@ -166,9 +166,9 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                     throw new BusinessException(CrawlDomainErrorCodes.PaymentPaymentMethodInvalid, "Payment method invalid");
                 }
 
-                bool isStdPlan = CrawlConsts.Payment.IsStdPlan(input.SubscriptionPlanId, _configuration);
+                bool isStdPlan = CrawlConsts.Paddle.IsPaddleStandardPlan(input.SubscriptionPlanId, _configuration);
 
-                decimal planPrice = CrawlConsts.Payment.GetPlanPrice(planKey, _configuration);
+                decimal planPrice = CrawlConsts.Paddle.GetPaddlePlanPrice(planKey, _configuration);
 
                 var user = await RegisterWithoutPasswordAsync(input.Email, isStdPlan);
 
@@ -178,7 +178,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                 {
                     if (input.SaleGross >= planPrice)
                     {
-                        var currentPlan = await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, historyRef: refValue);
+                        var currentPlan = await _userPlanManager.UpgradeOrRenewalPlan(user.Id, planKey, PaymentMethod.Paddle, historyRef: refValue);
                         currentPlan.PaddleAddSubscription(input.SubscriptionId);
                         currentPlan.PaymentMethod = (int)PaymentMethod.Paddle;
                         await _userPlanRepository.UpdateAsync(currentPlan);

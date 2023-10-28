@@ -52,7 +52,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                 PaymentMethod = (int)PaymentMethod.Paddle
             });
 
-            var planId = CrawlConsts.Payment.GetPlanId(planKey, _configuration);
+            var planId = CrawlConsts.Paddle.GetPaddlePlanId(planKey, _configuration);
             string payLink = await _paddlePaymentManager.GeneratePaylink(order.OrderId, planId);
 
             order.AddPayLink(payLink);

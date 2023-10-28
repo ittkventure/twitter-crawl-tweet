@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Volo.Abp;
+using static TK.Twitter.Crawl.CrawlConsts.Payment;
 
 namespace TK.Twitter.Crawl;
 
@@ -144,6 +145,8 @@ public static class CrawlConsts
         public const string LEAD3_PRE_ANNUALLY = "PremiumAnnually";
         public const string LEAD3_TRIAL = "Trial";
 
+        public static List<string> PAID_PLAN = new List<string>() { LEAD3_STD_MONTHLY, LEAD3_STD_ANNUALLY, LEAD3_PRE_MONTHLY, LEAD3_PRE_ANNUALLY };
+
         public static bool IsPremiumPlan(string key)
         {
             return key == LEAD3_PRE_ANNUALLY || key == LEAD3_PRE_MONTHLY;
@@ -175,9 +178,16 @@ public static class CrawlConsts
             }
         }
 
-        public static List<string> PAID_PLAN = new List<string>() { LEAD3_STD_MONTHLY, LEAD3_STD_ANNUALLY, LEAD3_PRE_MONTHLY, LEAD3_PRE_ANNUALLY };
+        public static class Type
+        {
+            public const string CANCEL = "CANCEL";
+            public const string UPGRADE_OR_RENEWAL = "UPGRADE_OR_RENEWAL";
+        }
+    }
 
-        public class PlanConfig
+    public static class Paddle
+    {
+        public class PaddlePlanConfig
         {
             public string Key { get; set; }
             public long Id { get; set; }
@@ -185,11 +195,11 @@ public static class CrawlConsts
             public decimal Price { get; set; }
         }
 
-        public static List<PlanConfig> Plans = new List<PlanConfig>();
+        public static List<PaddlePlanConfig> PaddlePlans = new List<PaddlePlanConfig>();
 
-        public static void LoadPlan(IConfiguration configuration)
+        public static void LoadPaddlePlan(IConfiguration configuration)
         {
-            if (Plans.IsNotEmpty())
+            if (PaddlePlans.IsNotEmpty())
             {
                 return;
             }
@@ -197,7 +207,7 @@ public static class CrawlConsts
             var planconfigs = configuration.GetSection("RemoteServices:Paddle:Plans");
             foreach (var cfg in planconfigs.GetChildren())
             {
-                var planConfig = new PlanConfig()
+                var planConfig = new PaddlePlanConfig()
                 {
                     Key = cfg.Key,
                     Id = cfg.GetValue<long>("PlanId"),
@@ -205,46 +215,114 @@ public static class CrawlConsts
                     RecurringIntervalMonth = cfg.GetValue<int>("RecurringInterval"),
                 };
 
-                Plans.Add(planConfig);
+                PaddlePlans.Add(planConfig);
             }
         }
 
-        public static long GetPlanId(string planKey, IConfiguration configuration)
+        public static long GetPaddlePlanId(string planKey, IConfiguration configuration)
         {
-            LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Key == planKey);
             return plan.Id;
         }
 
-        public static string GetPlanKey(long planId, IConfiguration configuration)
+        public static string GetPaddlePlanKey(long planId, IConfiguration configuration)
         {
-            LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Id == planId);
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Id == planId);
             return plan.Key;
         }
 
-        public static bool IsStdPlan(long planId, IConfiguration configuration)
+        public static bool IsPaddleStandardPlan(long planId, IConfiguration configuration)
+        {
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Id == planId);
+            return plan.Key == LEAD3_STD_MONTHLY || plan.Key == LEAD3_STD_ANNUALLY;
+        }
+
+        public static decimal GetPaddlePlanPrice(string planKey, IConfiguration configuration)
+        {
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Key == planKey);
+            return plan.Price;
+        }
+
+        public static DateTime GetPaddlePlanExpiredAt(string planKey, DateTime now, int paddingHours, IConfiguration configuration)
+        {
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Key == planKey);
+            return now.AddMonths(plan.RecurringIntervalMonth).AddHours(paddingHours);
+        }
+
+        public static (string, int) GetPlanRecurringInterval(string planKey, IConfiguration configuration)
+        {
+            if (IsTrialPlan(planKey))
+            {
+                return ("DAY", 3);
+            }
+
+            LoadPaddlePlan(configuration);
+            var plan = PaddlePlans.FirstOrDefault(x => x.Key == planKey);
+            return ("MONTH", plan.RecurringIntervalMonth);
+        }
+    }
+
+    public static class CoinBase
+    {
+        public class CoinBasePlanConfig
+        {
+            public string Key { get; set; }
+            public string Id { get; set; }
+            public int RecurringIntervalMonth { get; set; }
+            public decimal Price { get; set; }
+        }
+
+        public static List<CoinBasePlanConfig> CoinBasePlans = new List<CoinBasePlanConfig>();
+
+        public static void LoadPlan(IConfiguration configuration)
+        {
+            if (CoinBasePlans.IsNotEmpty())
+            {
+                return;
+            }
+            
+            var planconfigs = configuration.GetSection("RemoteServices:CoinBase:Plans");
+            foreach (var cfg in planconfigs.GetChildren())
+            {
+                var planConfig = new CoinBasePlanConfig()
+                {
+                    Key = cfg.Key,
+                    Id = cfg.GetValue<string>("PlanId"),
+                    Price = cfg.GetValue<decimal>("Price"),
+                    RecurringIntervalMonth = cfg.GetValue<int>("RecurringInterval"),
+                };
+
+                CoinBasePlans.Add(planConfig);
+            }
+        }
+
+        public static string GetPlanKey(string planId, IConfiguration configuration)
         {
             LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Id == planId);
+            var plan = CoinBasePlans.FirstOrDefault(x => x.Id == planId);
+            return plan.Key;
+        }
+
+        public static bool IsStandardPlan(string planId, IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            var plan = CoinBasePlans.FirstOrDefault(x => x.Id == planId);
             return plan.Key == LEAD3_STD_MONTHLY || plan.Key == LEAD3_STD_ANNUALLY;
         }
 
         public static decimal GetPlanPrice(string planKey, IConfiguration configuration)
         {
             LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            var plan = CoinBasePlans.FirstOrDefault(x => x.Key == planKey);
             return plan.Price;
         }
 
-        public static DateTime GetPlanExpiredAt(string planKey, DateTime now, int paddingHours, IConfiguration configuration)
-        {
-            LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
-            return now.AddMonths(plan.RecurringIntervalMonth).AddHours(paddingHours);
-        }
-
-        public static (string, int) GetPlanRecurringIntervaL(string planKey, IConfiguration configuration)
+        public static (string, int) GetPlanRecurringInterval(string planKey, IConfiguration configuration)
         {
             if (IsTrialPlan(planKey))
             {
@@ -252,14 +330,9 @@ public static class CrawlConsts
             }
 
             LoadPlan(configuration);
-            var plan = Plans.FirstOrDefault(x => x.Key == planKey);
+            var plan = CoinBasePlans.FirstOrDefault(x => x.Key == planKey);
             return ("MONTH", plan.RecurringIntervalMonth);
         }
 
-        public static class Type
-        {
-            public const string CANCEL = "CANCEL";
-            public const string UPGRADE_OR_RENEWAL = "UPGRADE_OR_RENEWAL";
-        }
     }
 }

@@ -99,7 +99,7 @@ namespace TK.Twitter.Crawl.Tweet.User
             return (hasPremium, expiredDate);
         }
 
-        public async Task<UserPlanEntity> UpgradeOrRenewalPlan(Guid userId, string planKey, string historyRef = null)
+        public async Task<UserPlanEntity> UpgradeOrRenewalPlan(Guid userId, string planKey, PaymentMethod paymentMethod, string historyRef = null)
         {
             var hasUser = await _userRepository.AnyAsync(x => x.Id == userId);
             if (!hasUser)
@@ -115,7 +115,19 @@ namespace TK.Twitter.Crawl.Tweet.User
             var now = Clock.Now;
             var expired = now.AddHours(PADDING_HOURS);
 
-            var (timeAddedType, recurringIntervalCount) = CrawlConsts.Payment.GetPlanRecurringIntervaL(planKey, _configuration);
+            string timeAddedType;
+            int recurringIntervalCount;
+            switch (paymentMethod)
+            {
+                case PaymentMethod.Paddle:
+                case PaymentMethod.Unknown:
+                default:
+                    (timeAddedType, recurringIntervalCount) = CrawlConsts.Paddle.GetPlanRecurringInterval(planKey, _configuration);
+                    break;
+                case PaymentMethod.CoinBase:
+                    (timeAddedType, recurringIntervalCount) = CrawlConsts.CoinBase.GetPlanRecurringInterval(planKey, _configuration);
+                    break;
+            }
 
             var currentPlan = await AsyncExecuter.FirstOrDefaultAsync(currentPlanQuery);
             if (currentPlan == null)
@@ -126,7 +138,7 @@ namespace TK.Twitter.Crawl.Tweet.User
                     PlanKey = planKey,
                     CreatedAt = now,
                 };
-                                
+
                 if (timeAddedType == "MONTH")
                 {
                     expired = expired.AddMonths(recurringIntervalCount);

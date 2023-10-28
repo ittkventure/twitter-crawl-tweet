@@ -98,6 +98,8 @@ public class CrawlDbContext :
     public DbSet<UserPlanCancelationSurveyEntity> UserPlanCancelationSurveyEntities { get; set; }
     public DbSet<EmailLogEntity> EmailLogEntities { get; set; }
     public DbSet<Lead3UrlEntity> Lead3UrlEntities { get; set; }
+    public DbSet<CoinBaseWebhookLogEntity> CoinBaseWebhookLogEntities { get; set; }
+    public DbSet<CoinBaseWebhookProcessEntity> CoinBaseWebhookProcessEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -422,6 +424,24 @@ public class CrawlDbContext :
 
             b.Property(x => x.Url).HasMaxLength(1024).IsRequired();
             b.Property(x => x.Type).HasMaxLength(128);
+        });
+
+        builder.Entity<CoinBaseWebhookLogEntity>(b =>
+        {
+            b.ToTable("coin_base_webhook_log");
+            b.ConfigureByConvention();
+
+            b.HasIndex(x => new { x.EventId, x.EventType });
+        });
+
+        builder.Entity<CoinBaseWebhookProcessEntity>(b =>
+        {
+            b.ToTable("coin_base_webhook_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Note).HasMaxLength(2056);
+
+            b.HasIndex(x => new { x.EventId, x.EventType, x.Ended, x.Succeeded });
         });
     }
 }

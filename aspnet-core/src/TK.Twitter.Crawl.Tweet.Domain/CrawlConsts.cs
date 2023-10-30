@@ -285,7 +285,7 @@ public static class CrawlConsts
             {
                 return;
             }
-            
+
             var planconfigs = configuration.GetSection("RemoteServices:CoinBase:Plans");
             foreach (var cfg in planconfigs.GetChildren())
             {
@@ -306,6 +306,12 @@ public static class CrawlConsts
             LoadPlan(configuration);
             var plan = CoinBasePlans.FirstOrDefault(x => x.Id == planId);
             return plan.Key;
+        }
+
+        public static List<CoinBasePlanConfig> GetPlans(IConfiguration configuration)
+        {
+            LoadPlan(configuration);
+            return CoinBasePlans;
         }
 
         public static bool IsStandardPlan(string planId, IConfiguration configuration)

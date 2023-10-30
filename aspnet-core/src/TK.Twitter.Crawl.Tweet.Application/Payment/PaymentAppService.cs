@@ -1,12 +1,14 @@
 ﻿using Medallion.Threading;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using TK.Paddle.Domain;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet.User;
 using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
+using static TK.Twitter.Crawl.CrawlConsts;
 
 namespace TK.Twitter.Crawl.Tweet.Payment
 {
@@ -58,6 +60,12 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             order.AddPayLink(payLink);
 
             return payLink;
+        }
+
+        public CoinBase.CoinBasePlanConfig GetCoinBaseCheckOutId(string planKey)
+        {
+            var plans = CrawlConsts.CoinBase.GetPlans(_configuration);
+            return plans.FirstOrDefault(x => x.Key == planKey);
         }
 
         public async Task<bool> CheckOrderPaymentStatus(Guid id)

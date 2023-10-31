@@ -5,5 +5,7 @@
         public const string Notification = "Notification";
 
         public string TelegramChatId { get; set; }
+
+        public string Lead3ioChannelId { get; set; }
     }
 }

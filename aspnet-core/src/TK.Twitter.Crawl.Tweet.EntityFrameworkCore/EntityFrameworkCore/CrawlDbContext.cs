@@ -100,6 +100,8 @@ public class CrawlDbContext :
     public DbSet<Lead3UrlEntity> Lead3UrlEntities { get; set; }
     public DbSet<CoinBaseWebhookLogEntity> CoinBaseWebhookLogEntities { get; set; }
     public DbSet<CoinBaseWebhookProcessEntity> CoinBaseWebhookProcessEntities { get; set; }
+    public DbSet<AirTableWebhookLogEntity> AirTableWebhookLogEntities { get; set; }
+    public DbSet<AirTableWebhookProcessEntity> AirTableWebhookProcessEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -442,6 +444,24 @@ public class CrawlDbContext :
             b.Property(x => x.Note).HasMaxLength(2056);
 
             b.HasIndex(x => new { x.EventId, x.EventType, x.Ended, x.Succeeded });
+        });
+
+        builder.Entity<AirTableWebhookLogEntity>(b =>
+        {
+            b.ToTable("air_table_webhook_log");
+            b.ConfigureByConvention();
+
+            b.HasIndex(x => new { x.EventId });
+        });
+
+        builder.Entity<AirTableWebhookProcessEntity>(b =>
+        {
+            b.ToTable("air_table_webhook_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Note).HasMaxLength(2056);
+
+            b.HasIndex(x => new { x.EventId, x.Ended, x.Succeeded });
         });
     }
 }

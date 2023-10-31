@@ -134,10 +134,7 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 
                 }
 #else
-                        // random giây đc thêm
-                        //var addingSecs = Random.Next(180, 300);
-                        //lastTime = lastTime.AddSeconds(addingSecs);
-                        await _telegramBotSender.QueueAsync(telegramPrivateChatId, msg, ParseMode.Html);
+                        await _telegramBotSender.QueueAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
 #endif
 
                 await uow.SaveChangesAsync();

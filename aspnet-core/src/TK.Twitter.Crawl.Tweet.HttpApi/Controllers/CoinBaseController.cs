@@ -58,7 +58,7 @@ namespace TK.Twitter.Crawl.Controllers
                 return false;
             }
 
-            string secretKey = "150c5f5f-8325-43da-971e-c09152cf07a4";
+            string secretKey = "59ad9c1a-4474-4d14-a62b-f3475a8c9a41";
 
             if (!VerifySignature(originalData, secretKey, signature.ToString()))
             {

@@ -102,43 +102,49 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             try
             {
                 var lead = await _leadRepository.FirstOrDefaultAsync(x => x.UserId == processItem.SystemId);
-                if (lead == null)
+                if (lead != null)
                 {
-                    return;
-                }
+                    var lastestSignalQuery = from sig in await _twitterUserSignalRepository.GetQueryableAsync()
+                                             where sig.UserId == processItem.SystemId
+                                             orderby sig.CreationTime descending
+                                             select sig;
 
-                var lastestSignalQuery = from sig in await _twitterUserSignalRepository.GetQueryableAsync()
-                                         where sig.UserId == processItem.SystemId
-                                         orderby sig.CreationTime descending
-                                         select sig;
+                    var signal = await _twitterUserSignalRepository.AsyncExecuter.FirstOrDefaultAsync(lastestSignalQuery);
 
-                var signal = await _twitterUserSignalRepository.AsyncExecuter.FirstOrDefaultAsync(lastestSignalQuery);
+                    // nếu signal cuối là CGK hoặc CMC thì bỏ qua
+                    if (signal.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP || signal.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO)
+                    {
 
-                var dto = new TelegramMessageDto()
-                {
-                    ProjectUrl = lead.UserProfileUrl,
-                    LastestSignal = CrawlConsts.Signal.GetName(signal.Signal),
-                    LastestSignalFrom = lead.MediaMentioned,
-                    SignalTime = lead.LastestSponsoredDate,
-                    SignalUrl = lead.LastestSponsoredTweetUrl
-                };
+                    }
+                    else
+                    {
+                        var dto = new TelegramMessageDto()
+                        {
+                            ProjectUrl = lead.UserProfileUrl,
+                            LastestSignal = CrawlConsts.Signal.GetName(signal.Signal),
+                            LastestSignalFrom = lead.MediaMentioned,
+                            SignalTime = lead.LastestSponsoredDate,
+                            SignalUrl = lead.LastestSponsoredTweetUrl
+                        };
 
-                string msg = GetMessageTemplate(dto);
+                        string msg = GetMessageTemplate(dto);
 #if DEBUG
-                try
-                {
-                    await _telegramBotSender.SendAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
-                }
-                catch (Exception)
-                {
+                        try
+                        {
+                            await _telegramBotSender.SendAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
+                        }
+                        catch (Exception)
+                        {
 
-                }
+                        }
 #else
                         await _telegramBotSender.QueueAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
 #endif
 
-                await uow.SaveChangesAsync();
-                //await uow.CompleteAsync();
+                        //await uow.SaveChangesAsync();
+                        //await uow.CompleteAsync();
+                    }
+                }
 
                 processItem.Succeeded = true;
             }

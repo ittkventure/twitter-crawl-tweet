@@ -46,7 +46,6 @@ namespace TK.Twitter.Crawl.Tweet.Payment
             UserPlanManager userPlanManager,
             IRepository<CoinBaseWebhookLogEntity, Guid> coinBaseWebhookLogRepository,
             IRepository<CoinBaseWebhookProcessEntity, long> paymentWebhookProcessRepository,
-            IRepository<PaymentOrderEntity, Guid> paymentOrderRepository,
             IRepository<IdentityUser, Guid> userRepository,
             IRepository<UserPlanEntity, Guid> userPlanRepository,
             ILogger<CoinBaseAfterWebhookLogAddedHandler> logger,

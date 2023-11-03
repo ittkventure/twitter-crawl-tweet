@@ -1,4 +1,5 @@
 ﻿using Medallion.Threading;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
@@ -8,6 +9,7 @@ using System.Runtime.ConstrainedExecution;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
+using TK.Twitter.Crawl.Notification;
 using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.TwitterAPI;
 using TK.Twitter.Crawl.TwitterAPI.Dto;
@@ -16,6 +18,7 @@ using Volo.Abp;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -62,10 +65,12 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly TwitterAPITweetService _twitterAPITweetService;
         private readonly ITwitterAccountRepository _twitterAccountRepository;
         private readonly IDistributedLockProvider _distributedLockProvider;
+        private readonly IMemoryCache _memoryCache;
+        private readonly IDistributedEventBus _distributedEventBus;
 
         public TwitterTweetCrawlJob(
             IBackgroundJobManager backgroundJobManager,
-            IRepository<TwitterTweetCrawlQueueEntity, long> twitterFollowingCrawlQueueRepository,
+            IRepository<TwitterTweetCrawlQueueEntity, long> twitterTweetCrawlQueueRepository,
             IRepository<TwitterTweetCrawlRawEntity, long> twitterTweetCrawlRawRepository,
             IRepository<TwitterTweetEntity, long> twitterTweetRepository,
             IRepository<TwitterTweetMediaEntity, long> twitterTweetMediaRepository,
@@ -81,10 +86,12 @@ namespace TK.Twitter.Crawl.Jobs
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
             ITwitterAccountRepository twitterAccountRepository,
-            IDistributedLockProvider distributedLockProvider)
+            IDistributedLockProvider distributedLockProvider,
+            IMemoryCache memoryCache,
+            IDistributedEventBus distributedEventBus)
         {
             _backgroundJobManager = backgroundJobManager;
-            _twitterTweetCrawlQueueRepository = twitterFollowingCrawlQueueRepository;
+            _twitterTweetCrawlQueueRepository = twitterTweetCrawlQueueRepository;
             _twitterTweetCrawlRawRepository = twitterTweetCrawlRawRepository;
             _twitterTweetRepository = twitterTweetRepository;
             _twitterTweetMediaRepository = twitterTweetMediaRepository;
@@ -101,22 +108,25 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterAPITweetService = twitterAPITweetService;
             _twitterAccountRepository = twitterAccountRepository;
             _distributedLockProvider = distributedLockProvider;
+            _memoryCache = memoryCache;
+            _distributedEventBus = distributedEventBus;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(TwitterTweetCrawlJobArg args)
         {
-            bool shouldRun = false;
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"TwitterFollowingCrawlJob_{args.BatchKey}_{args.TwitterAccountId}"))
+            var cacheKey = $"TwitterTweetCrawlJob_{args.BatchKey}_{args.TwitterAccountId}";
+            // Kiểm tra xem task đã được thực hiện bởi người dùng khác chưa
+            if (IsTaskInProgress(cacheKey))
             {
-                if (handle == null)
-                {
-                    Logger.LogInformation(LOG_PREFIX + "Some process is running!!!");
-                    return;
-                }
+                return;
+            }
 
-                shouldRun = true;
+            // Thực hiện task và đặt trạng thái task is-in-progress vào cache
+            SetTaskInProgress(cacheKey);
 
+            try
+            {
                 using var uow = _unitOfWorkManager.Begin();
                 try
                 {
@@ -131,6 +141,7 @@ namespace TK.Twitter.Crawl.Jobs
                     var queues = await asyncExecuter.ToListAsync(queueQuery);
                     if (queues.IsEmpty())
                     {
+                        ClearTaskInProgress(cacheKey);
                         return;
                     }
 
@@ -359,11 +370,22 @@ namespace TK.Twitter.Crawl.Jobs
                     await uow.RollbackAsync();
                     Logger.LogError(ex, LOG_PREFIX + "An error occurred while crawling twitter data");
                 }
-            }
 
-            if (shouldRun)
-            {
+                // Sau khi hoàn thành task, xóa trạng thái task is-in-progress từ cache
+                ClearTaskInProgress(cacheKey);
+
                 await _backgroundJobManager.EnqueueAsync(args);
+            }
+            catch (Exception ex)
+            {
+                await _distributedEventBus.PublishAsync(new NotificationErrorEto()
+                {
+                    Tags = "[TwitterTweetCrawlJob]",
+                    Message = "Lỗi khi crawl tweet. Detail: " + ex.Message,
+                    ExceptionStackTrace = ex.StackTrace
+                });
+
+                ClearTaskInProgress(cacheKey);
             }
         }
 
@@ -902,6 +924,21 @@ namespace TK.Twitter.Crawl.Jobs
             }
 
             return null;
+        }
+
+        private bool IsTaskInProgress(string cacheKey)
+        {
+            return _memoryCache.TryGetValue(cacheKey, out bool isTaskInProgress) && isTaskInProgress;
+        }
+
+        private void SetTaskInProgress(string cacheKey)
+        {
+            _memoryCache.Set(cacheKey, true);
+        }
+
+        private void ClearTaskInProgress(string cacheKey)
+        {
+            _memoryCache.Remove(cacheKey);
         }
     }
 }

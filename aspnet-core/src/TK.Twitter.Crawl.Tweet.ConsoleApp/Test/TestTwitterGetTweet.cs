@@ -43,10 +43,17 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             _twitterTweetRepository = twitterTweetRepository;
         }
 
+
         public async Task Test()
         {
-            var response = await _twitterAPIUserService.GetUserByScreenNameAsync("b2binpay", "Account_5");
-            
+            string crawlAccountId = "Account_8";
+            var crawlAccountInfo = await _twitterCrawlAccountRepository.FirstOrDefaultAsync(x => x.AccountId == crawlAccountId);
+            if (crawlAccountInfo == null)
+            {
+                crawlAccountInfo = await _twitterAPIAuthService.CheckLogin(crawlAccountId);
+            }
+
+            var response = await _twitterAPITweetService.GetTweetAsync("830881218304557056", crawlAccountId);
         }
 
         public async Task Test_1()

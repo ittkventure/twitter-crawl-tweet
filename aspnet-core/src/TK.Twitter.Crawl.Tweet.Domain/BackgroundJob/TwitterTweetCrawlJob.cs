@@ -207,6 +207,12 @@ namespace TK.Twitter.Crawl.Jobs
                                 }
 
                                 var jsonContent = JObject.Parse(response.JsonText);
+                                if (jsonContent["data"]?["user"]?["result"] == null)
+                                {
+                                    succeedGet = false;
+                                    messageGet = "User Unavailable";
+                                    break;
+                                }
 
                                 if ((string)jsonContent["data"]["user"]["result"]["__typename"] == "UserUnavailable")
                                 {

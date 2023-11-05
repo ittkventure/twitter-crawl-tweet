@@ -256,7 +256,7 @@ namespace TK.Twitter.Crawl.Jobs
             await _backgroundJobManager.EnqueueAsync(args);
         }
 
-        private async Task<TwitterUserDto> GetTwitterUserAsync(string url, TwitterAccountEntity currentAcc)
+        public async Task<TwitterUserDto> GetTwitterUserAsync(string url, TwitterAccountEntity currentAcc)
         {
             string screenName;
             try

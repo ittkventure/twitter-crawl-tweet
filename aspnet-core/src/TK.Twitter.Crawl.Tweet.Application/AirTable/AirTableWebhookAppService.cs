@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
+using TK.Twitter.Crawl.Tweet.AirTable;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EventBus.Distributed;

@@ -11,12 +11,23 @@ using TK.Twitter.Crawl.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.EventBus;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
-namespace TK.Twitter.Crawl.Tweet.Payment
+namespace TK.Twitter.Crawl.Tweet.AirTable
 {
+    [EventName("AirTable.Webhook.AirTableAfterWebhookLogAddedEto")]
+    public class AirTableAfterWebhookLogAddedEto
+    {
+        public Guid EventId { get; set; }
+
+        public string SystemId { get; set; }
+
+        public string Action { get; set; }
+    }
+
     public class AirTableAfterWebhookLogAddedHandler : IDistributedEventHandler<AirTableAfterWebhookLogAddedEto>, ITransientDependency
     {
         private const string LOG_PREFIX = "[AirTableAfterWebhookLogAddedHandler] ";
@@ -110,40 +121,28 @@ namespace TK.Twitter.Crawl.Tweet.Payment
                                              select sig;
 
                     var signal = await _twitterUserSignalRepository.AsyncExecuter.FirstOrDefaultAsync(lastestSignalQuery);
+                    var dto = new TelegramMessageDto()
+                    {
+                        ProjectUrl = lead.UserProfileUrl,
+                        LastestSignal = CrawlConsts.Signal.GetName(signal.Signal),
+                        LastestSignalFrom = lead.MediaMentioned,
+                        SignalTime = lead.LastestSponsoredDate,
+                        SignalUrl = lead.LastestSponsoredTweetUrl
+                    };
 
-                    // nếu signal cuối là CGK hoặc CMC thì bỏ qua
-                    if (signal.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP || signal.Signal == CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO)
+                    string msg = GetMessageTemplate(dto);
+#if DEBUG
+                    try
+                    {
+                        await _telegramBotSender.SendAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
+                    }
+                    catch (Exception)
                     {
 
                     }
-                    else
-                    {
-                        var dto = new TelegramMessageDto()
-                        {
-                            ProjectUrl = lead.UserProfileUrl,
-                            LastestSignal = CrawlConsts.Signal.GetName(signal.Signal),
-                            LastestSignalFrom = lead.MediaMentioned,
-                            SignalTime = lead.LastestSponsoredDate,
-                            SignalUrl = lead.LastestSponsoredTweetUrl
-                        };
-
-                        string msg = GetMessageTemplate(dto);
-#if DEBUG
-                        try
-                        {
-                            await _telegramBotSender.SendAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
-                        }
-                        catch (Exception)
-                        {
-
-                        }
 #else
                         await _telegramBotSender.QueueAsync(_notifycationOptions.Value.Lead3ioChannelId, msg, ParseMode.Html);
 #endif
-
-                        //await uow.SaveChangesAsync();
-                        //await uow.CompleteAsync();
-                    }
                 }
 
                 processItem.Succeeded = true;

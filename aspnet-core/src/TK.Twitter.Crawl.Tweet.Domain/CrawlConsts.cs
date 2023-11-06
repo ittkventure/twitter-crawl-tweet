@@ -114,10 +114,10 @@ public static class CrawlConsts
                 case "buying sponsored posts":
                     code = BUYING_SPONSORED_POSTS;
                     break;
-                case "Just listed in Coingecko":
+                case "just listed in coingecko":
                     code = JUST_LISTED_IN_COINGECKO;
                     break;
-                case "Just listed in Coinmarketcap":
+                case "just listed in coinmarketcap":
                     code = JUST_LISTED_IN_COINMARKETCAP;
                     break;
                 default:

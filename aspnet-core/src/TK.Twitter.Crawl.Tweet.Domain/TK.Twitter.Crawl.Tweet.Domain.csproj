@@ -36,6 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\modules\coin-gecko\TK.CoinGecko.Client\TK.CoinGecko.Client.csproj" />
 		<ProjectReference Include="..\..\modules\paddle\TK.Paddle.Domain\TK.Paddle.Domain.csproj" />
 		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.BackgroundJobs\TK.Telegram.BackgroundJobs.csproj" />
 		<ProjectReference Include="..\..\modules\telegram-bot\TK.Telegram.Domain\TK.Telegram.Domain.csproj" />

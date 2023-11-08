@@ -16,7 +16,7 @@ namespace TK.Twitter.Crawl.Repository
         {
         }
 
-        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName)
+        public async Task<PagingResult<TweetLeadDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName)
         {
             var dbConnection = await GetDbConnectionAsync();
                         
@@ -152,14 +152,14 @@ FROM twitter_tweet_user_mention mention_main
 
             sql += @"ORDER BY lastest_tweet.""LastestSponsoredDate"" DESC -- Thêm điều kiện để sử dụng được index của CreatedAt";
             sql += @"	LIMIT @LIMIT OFFSET @OFFSET";
-            var pagingResult = new PagingResult<TweetMentionDto>();            
+            var pagingResult = new PagingResult<TweetLeadDto>();            
             pagingResult.TotalCount = await dbConnection.QueryFirstAsync<int>(countSql, param, transaction: await GetDbTransactionAsync());
             if (pagingResult.TotalCount == 0)
             {
                 return pagingResult;
             }
 
-            var temp = await dbConnection.QueryAsync<TweetMentionDto>(sql, param, transaction: await GetDbTransactionAsync());
+            var temp = await dbConnection.QueryAsync<TweetLeadDto>(sql, param, transaction: await GetDbTransactionAsync());
             pagingResult.Items = temp?.ToList();
 
             return pagingResult;

@@ -21,6 +21,7 @@ using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 using System.Collections;
 using System.Text.Json;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 
 namespace TK.Twitter.Crawl.Jobs
 {
@@ -42,6 +43,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly AirTableService _airTableService;
         private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly IDistributedEventBus _distributedEventBus;
+        private readonly MemoryLockProvider _memoryLockProvider;
 
         public AirTableCheckDataManualSourceJob(
             IBackgroundJobManager backgroundJobManager,
@@ -52,7 +54,8 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableService airTableService,
             IDistributedLockProvider distributedLockProvider,
             IDistributedEventBus distributedEventBus,
-            ILogger<AirTableCheckDataManualSourceJob> logger)
+            ILogger<AirTableCheckDataManualSourceJob> logger,
+            MemoryLockProvider memoryLockProvider)
         {
             _backgroundJobManager = backgroundJobManager;
             _airTableManualSourceRepository = airTableManualSourceRepository;
@@ -62,13 +65,14 @@ namespace TK.Twitter.Crawl.Jobs
             _airTableService = airTableService;
             _distributedLockProvider = distributedLockProvider;
             _distributedEventBus = distributedEventBus;
+            _memoryLockProvider = memoryLockProvider;
             Logger = logger;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(AirTableCheckDataManualSourceJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"AirTableCheckDataManualSourceJob"))
+            using (var handle = _memoryLockProvider.TryAcquireLock($"AirTableCheckDataManualSourceJob"))
             {
                 if (handle == null)
                 {

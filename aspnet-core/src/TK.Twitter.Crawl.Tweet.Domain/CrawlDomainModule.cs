@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using TK.CoinGecko.Client;
 using TK.Paddle.Domain;
 using TK.Telegram.BackgroundJobs;
 using TK.Telegram.Domain;
@@ -41,7 +42,9 @@ namespace TK.Twitter.Crawl;
     typeof(TwitterAccountDomainModule),
     typeof(TelegramDomainModule),
     typeof(TelegramBackgroundJobsModule),
-    typeof(PaddleDomainModule)
+    typeof(PaddleDomainModule),
+    typeof(CoinGeckoClientModule)
+
 )]
 public class CrawlDomainModule : AbpModule
 {

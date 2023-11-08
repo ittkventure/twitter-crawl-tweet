@@ -1,15 +1,20 @@
 ﻿using Medallion.Threading;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.AirTable;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.TenantManagement;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -31,11 +36,15 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<LeadWaitingProcessEntity, long> _leadWaitingProcessRepository;
         private readonly IRepository<LeadEntity, long> _leadRepository;
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
+        private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
+        private readonly IRepository<CoinGeckoCoinEntity, long> _coinGeckoCoinRepository;
+        private readonly IRepository<LeadAnotherSourceEntity, long> _leadAnotherSourceRepository;
         private readonly Lead3Manager _lead3Manager;
         private readonly AirTableService _airTableService;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IDistributedLockProvider _distributedLockProvider;
+        private readonly MemoryLockProvider _memoryLockProvider;
 
         public LeadProcessWaitingJob(
             IBackgroundJobManager backgroundJobManager,
@@ -44,11 +53,15 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<LeadWaitingProcessEntity, long> leadWaitingProcessRepository,
             IRepository<LeadEntity, long> LeadRepository,
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
+            IRepository<TwitterUserEntity, long> twitterUserRepository,
+            IRepository<CoinGeckoCoinEntity, long> coinGeckoCoinRepository,
+            IRepository<LeadAnotherSourceEntity, long> leadAnotherSourceRepository,
             Lead3Manager lead3Manager,
             AirTableService airTableService,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            IDistributedLockProvider distributedLockProvider)
+            IDistributedLockProvider distributedLockProvider,
+            MemoryLockProvider memoryLockProvider)
         {
             _backgroundJobManager = backgroundJobManager;
             _airTableManualSourceRepository = airTableManualSourceRepository;
@@ -56,17 +69,21 @@ namespace TK.Twitter.Crawl.Jobs
             _leadWaitingProcessRepository = leadWaitingProcessRepository;
             _leadRepository = LeadRepository;
             _twitterUserSignalRepository = twitterUserSignalRepository;
+            _twitterUserRepository = twitterUserRepository;
+            _coinGeckoCoinRepository = coinGeckoCoinRepository;
+            _leadAnotherSourceRepository = leadAnotherSourceRepository;
             _lead3Manager = lead3Manager;
             _airTableService = airTableService;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _distributedLockProvider = distributedLockProvider;
+            _memoryLockProvider = memoryLockProvider;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(LeadProcessWaitingJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"LeadProcessWaitingJob"))
+            using (var handle = _memoryLockProvider.TryAcquireLock($"LeadProcessWaitingJob"))
             {
                 if (handle == null)
                 {
@@ -107,7 +124,15 @@ namespace TK.Twitter.Crawl.Jobs
                             }
                             else if (item.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE)
                             {
-                                var addUserId = await ProcessManualSourceSource(item);
+                                var addUserId = await ProcessManualSource(item);
+                                if (addUserId.IsNotEmpty())
+                                {
+                                    addUserIds.Add(addUserId);
+                                }
+                            }
+                            else if (item.Source == CrawlConsts.Signal.Source.COIN_GECKO)
+                            {
+                                var addUserId = await ProcessCoinGeckoSource(item);
                                 if (addUserId.IsNotEmpty())
                                 {
                                     addUserIds.Add(addUserId);
@@ -215,7 +240,7 @@ namespace TK.Twitter.Crawl.Jobs
             return addUserId;
         }
 
-        public async Task<string> ProcessManualSourceSource(LeadWaitingProcessEntity item)
+        public async Task<string> ProcessManualSource(LeadWaitingProcessEntity item)
         {
             var record = await _airTableManualSourceRepository.FirstOrDefaultAsync(x => x.RecordId == item.RecordId);
             if (record == null)
@@ -289,6 +314,78 @@ namespace TK.Twitter.Crawl.Jobs
             return addUserId;
         }
 
+        public async Task<string> ProcessCoinGeckoSource(LeadWaitingProcessEntity item)
+        {
+            var coin = await _coinGeckoCoinRepository.FirstOrDefaultAsync(x => x.CoinId == item.RecordId) ?? throw new Exception("Coin not found");
+            var user = await _twitterUserRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId) ?? throw new Exception("User not found");
+            var lead = await _leadRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+
+            string addUserId = null;
+            string action;
+            if (lead == null)
+            {
+                action = "CREATE";
+            }
+            else
+            {
+                action = "UPDATE";
+            }
+
+            var otherSignal = await _lead3Manager.GetSignalDescription(new List<string> { item.UserId });
+            bool b = otherSignal.TryGetValue(item.UserId, out string otherSignalValue);
+            var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == item.UserId);
+
+            string userType = null;
+            if (IsLead(signals))
+            {
+                userType = CrawlConsts.LeadType.LEADS;
+            }
+
+            var jObject = JObject.Parse(coin.JsonContent);
+            var coinLastUpdated = jObject["last_updated"].ParseIfNotNull<DateTime?>();
+
+            switch (action)
+            {
+                case "CREATE":
+                    var entity = await _leadRepository.InsertAsync(new LeadEntity()
+                    {
+                        UserId = user.UserId,
+                        UserName = user.Name,
+                        UserScreenName = user.ScreenName,
+                        UserProfileUrl = "https://twitter.com/" + user.ScreenName,
+                        UserType = userType,
+                        UserStatus = "New",
+                        Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(","),
+
+                        LastestSponsoredDate = coinLastUpdated.HasValue ? coinLastUpdated.Value : coin.CreationTime,
+                        LastestSponsoredTweetUrl = "https://www.coingecko.com/en/new-cryptocurrencies",
+                        TweetDescription = "Just listed in Coingecko",
+                        MediaMentioned = "Coingecko",
+
+                        SignalDescription = b ? otherSignalValue : null,
+                    }, autoSave: true);
+
+                    addUserId = entity.UserId;
+
+                    // Thêm vào queue đồng bộ lên airtable
+                    await _airTableWaitingProcessRepository.InsertAsync(new AirTableWaitingProcessEntity()
+                    {
+                        BatchKey = item.BatchKey,
+                        UserId = item.UserId,
+                        Action = action,
+                        LeadId = entity.Id,
+                        UserScreenName = entity.UserScreenName
+                    });
+                    break;
+
+                case "UPDATE":
+                    await UpdateLead(item);
+                    break;
+            }
+
+            return addUserId;
+        }
+
         /// <summary>
         /// Có thể cập nhật từ nhiều nguồn
         /// </summary>
@@ -296,107 +393,106 @@ namespace TK.Twitter.Crawl.Jobs
         /// <returns></returns>
         public async Task UpdateLead(LeadWaitingProcessEntity item)
         {
-            var leadOfAt = await _leadRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-            var leadsOfTweetService = await _lead3Manager.GetLeadsAsync(userIds: new List<string> { item.UserId });
-            var leadOfTs = leadsOfTweetService.FirstOrDefault(x => x.UserId == item.UserId);
+            var leadTwitterSources = await _lead3Manager.GetLeadsAsync(userIds: new List<string> { item.UserId });
 
-            var manualSource = await _airTableManualSourceRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+            var leadCurrent = await _leadRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+            var leadTwitterSource = leadTwitterSources.FirstOrDefault(x => x.UserId == item.UserId);
+            var leadAnotherSources = await _leadAnotherSourceRepository.GetListAsync(x => x.UserId == item.UserId && x.UpdatedAt >= leadTwitterSource.LastestSponsoredDate.Value);
 
-            if (leadOfTs == null && manualSource == null)
+            if (leadTwitterSource == null && leadAnotherSources.IsEmpty())
             {
                 return;
             }
 
-            if (leadOfTs == null && manualSource != null) // TH chỉ có dữ liệu từ manual source và k có dữ liệu từ tweet
+            if (leadTwitterSource == null && leadAnotherSources.IsNotEmpty()) // TH chỉ có dữ liệu từ another source và k có dữ liệu từ tweet
             {
                 var otherSignal = await _lead3Manager.GetSignalDescription(new List<string> { item.UserId });
                 bool b = otherSignal.TryGetValue(item.UserId, out string otherSignalValue);
                 var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == item.UserId);
 
-                var record = await _airTableManualSourceRepository.FirstOrDefaultAsync(x => x.RecordId == item.RecordId);
-                leadOfAt.Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(",");
+                var lastest = leadAnotherSources.OrderByDescending(x => x.UpdatedAt).First();
 
-                leadOfAt.LastestSponsoredDate = record.LastestSignalTime;
-                leadOfAt.LastestSponsoredTweetUrl = record.LastestSignalUrl;
-                leadOfAt.TweetDescription = record.LastestSignalDescription;
-                leadOfAt.MediaMentioned = record.LastestSignalFrom;
-
-                leadOfAt.SignalDescription = b ? otherSignalValue : null;
+                leadCurrent.Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(",");
+                leadCurrent.LastestSponsoredDate = lastest.UpdatedAt;
+                leadCurrent.LastestSponsoredTweetUrl = lastest.SignalUrl;
+                leadCurrent.TweetDescription = lastest.Description;
+                leadCurrent.MediaMentioned = lastest.MediaMentioned;
+                leadCurrent.SignalDescription = b ? otherSignalValue : null;
             }
-            else if (leadOfTs != null && manualSource == null) // TH chỉ k có dữ liệu từ manual source và có dữ liệu từ tweet 
+            else if (leadTwitterSource != null && leadAnotherSources.IsEmpty())
             {
-                leadOfAt.UserId = leadOfTs.UserId;
-                leadOfAt.UserName = leadOfTs.UserName;
-                leadOfAt.UserScreenName = leadOfTs.UserScreenName;
-                leadOfAt.UserProfileUrl = "https://twitter.com/" + leadOfTs.UserScreenName;
-                leadOfAt.UserType = leadOfTs.UserType;
-                leadOfAt.UserStatus = leadOfTs.UserStatus;
-                leadOfAt.Signals = leadOfTs.Signals?.JoinAsString(",");
-                leadOfAt.LastestTweetId = leadOfTs.LastestTweetId;
-                leadOfAt.LastestSponsoredDate = leadOfTs.LastestSponsoredDate;
-                leadOfAt.LastestSponsoredTweetUrl = leadOfTs.LastestSponsoredTweetUrl;
-                leadOfAt.DuplicateUrlCount = leadOfTs.DuplicateUrlCount;
-                leadOfAt.TweetDescription = leadOfTs.TweetDescription;
-                leadOfAt.TweetOwnerUserId = leadOfTs.TweetOwnerUserId;
-                leadOfAt.MediaMentioned = leadOfTs.MediaMentioned;
-                leadOfAt.MediaMentionedProfileUrl = "https://twitter.com/" + leadOfTs.MediaMentioned;
-                leadOfAt.NumberOfSponsoredTweets = leadOfTs.NumberOfSponsoredTweets;
-                leadOfAt.HashTags = leadOfTs.HashTags?.JoinAsString(",");
-                leadOfAt.SignalDescription = leadOfTs.SignalDescription;
+                leadCurrent.UserId = leadTwitterSource.UserId;
+                leadCurrent.UserName = leadTwitterSource.UserName;
+                leadCurrent.UserScreenName = leadTwitterSource.UserScreenName;
+                leadCurrent.UserProfileUrl = "https://twitter.com/" + leadTwitterSource.UserScreenName;
+                leadCurrent.UserType = leadTwitterSource.UserType;
+                leadCurrent.UserStatus = leadTwitterSource.UserStatus;
+                leadCurrent.Signals = leadTwitterSource.Signals?.JoinAsString(",");
+                leadCurrent.LastestTweetId = leadTwitterSource.LastestTweetId;
+                leadCurrent.LastestSponsoredDate = leadTwitterSource.LastestSponsoredDate;
+                leadCurrent.LastestSponsoredTweetUrl = leadTwitterSource.LastestSponsoredTweetUrl;
+                leadCurrent.DuplicateUrlCount = leadTwitterSource.DuplicateUrlCount;
+                leadCurrent.TweetDescription = leadTwitterSource.TweetDescription;
+                leadCurrent.TweetOwnerUserId = leadTwitterSource.TweetOwnerUserId;
+                leadCurrent.MediaMentioned = leadTwitterSource.MediaMentioned;
+                leadCurrent.MediaMentionedProfileUrl = "https://twitter.com/" + leadTwitterSource.MediaMentioned;
+                leadCurrent.NumberOfSponsoredTweets = leadTwitterSource.NumberOfSponsoredTweets;
+                leadCurrent.HashTags = leadTwitterSource.HashTags?.JoinAsString(",");
+                leadCurrent.SignalDescription = leadTwitterSource.SignalDescription;
             }
-            else if (leadOfTs != null && manualSource != null) // TH có cả 2 dữ liệu thì sử dụng dữ liệu có date gần nhất để update
+            else if (leadTwitterSource != null && leadAnotherSources.IsNotEmpty())
             {
-                leadOfAt.UserId = leadOfTs.UserId;
-                leadOfAt.UserName = leadOfTs.UserName;
-                leadOfAt.UserScreenName = leadOfTs.UserScreenName;
-                leadOfAt.UserProfileUrl = "https://twitter.com/" + leadOfTs.UserScreenName;
-                leadOfAt.UserType = leadOfTs.UserType;
-                leadOfAt.UserStatus = leadOfTs.UserStatus;
+                leadCurrent.UserId = leadTwitterSource.UserId;
+                leadCurrent.UserName = leadTwitterSource.UserName;
+                leadCurrent.UserScreenName = leadTwitterSource.UserScreenName;
+                leadCurrent.UserProfileUrl = "https://twitter.com/" + leadTwitterSource.UserScreenName;
+                leadCurrent.UserType = leadTwitterSource.UserType;
+                leadCurrent.UserStatus = leadTwitterSource.UserStatus;
 
                 var otherSignal = await _lead3Manager.GetSignalDescription(new List<string> { item.UserId });
                 bool b = otherSignal.TryGetValue(item.UserId, out string otherSignalValue);
                 if (b)
                 {
-                    leadOfAt.SignalDescription = otherSignalValue;
+                    leadCurrent.SignalDescription = otherSignalValue;
                 }
 
                 var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == item.UserId);
-                leadOfAt.Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(",");
+                leadCurrent.Signals = signals.Select(x => x.Signal).Distinct().JoinAsString(",");
 
-                bool useManualSource;
-                var record = await _airTableManualSourceRepository.FirstOrDefaultAsync(x => x.RecordId == item.RecordId);
-                if (record == null)
+                bool userAnotherSourceToUpdate;
+                var lastest = leadAnotherSources.OrderByDescending(x => x.UpdatedAt).First();
+                if (lastest == null)
                 {
-                    useManualSource = false;
+                    userAnotherSourceToUpdate = false;
                 }
                 else
                 {
-                    useManualSource = record.LastestSignalTime > leadOfTs.LastestSponsoredDate;
+                    userAnotherSourceToUpdate = lastest.UpdatedAt > leadTwitterSource.LastestSponsoredDate;
                 }
 
-                if (useManualSource)
+                if (userAnotherSourceToUpdate)
                 {
-                    leadOfAt.LastestSponsoredDate = record.LastestSignalTime;
-                    leadOfAt.LastestSponsoredTweetUrl = record.LastestSignalUrl;
-                    leadOfAt.TweetDescription = record.LastestSignalDescription;
-                    leadOfAt.MediaMentioned = record.LastestSignalFrom;
+                    leadCurrent.LastestSponsoredDate = lastest.UpdatedAt;
+                    leadCurrent.LastestSponsoredTweetUrl = lastest.SignalUrl;
+                    leadCurrent.TweetDescription = lastest.Description;
+                    leadCurrent.MediaMentioned = lastest.MediaMentioned;
                 }
                 else
                 {
-                    leadOfAt.LastestTweetId = leadOfTs.LastestTweetId;
-                    leadOfAt.LastestSponsoredDate = leadOfTs.LastestSponsoredDate;
-                    leadOfAt.LastestSponsoredTweetUrl = leadOfTs.LastestSponsoredTweetUrl;
-                    leadOfAt.DuplicateUrlCount = leadOfTs.DuplicateUrlCount;
-                    leadOfAt.TweetDescription = leadOfTs.TweetDescription;
-                    leadOfAt.TweetOwnerUserId = leadOfTs.TweetOwnerUserId;
-                    leadOfAt.MediaMentioned = leadOfTs.MediaMentioned;
-                    leadOfAt.MediaMentionedProfileUrl = "https://twitter.com/" + leadOfTs.MediaMentioned;
-                    leadOfAt.NumberOfSponsoredTweets = leadOfTs.NumberOfSponsoredTweets;
-                    leadOfAt.HashTags = leadOfTs.HashTags?.JoinAsString(",");
+                    leadCurrent.LastestTweetId = leadTwitterSource.LastestTweetId;
+                    leadCurrent.LastestSponsoredDate = leadTwitterSource.LastestSponsoredDate;
+                    leadCurrent.LastestSponsoredTweetUrl = leadTwitterSource.LastestSponsoredTweetUrl;
+                    leadCurrent.DuplicateUrlCount = leadTwitterSource.DuplicateUrlCount;
+                    leadCurrent.TweetDescription = leadTwitterSource.TweetDescription;
+                    leadCurrent.TweetOwnerUserId = leadTwitterSource.TweetOwnerUserId;
+                    leadCurrent.MediaMentioned = leadTwitterSource.MediaMentioned;
+                    leadCurrent.MediaMentionedProfileUrl = "https://twitter.com/" + leadTwitterSource.MediaMentioned;
+                    leadCurrent.NumberOfSponsoredTweets = leadTwitterSource.NumberOfSponsoredTweets;
+                    leadCurrent.HashTags = leadTwitterSource.HashTags?.JoinAsString(",");
                 }
             }
 
-            await _leadRepository.UpdateAsync(leadOfAt, autoSave: true);
+            await _leadRepository.UpdateAsync(leadCurrent, autoSave: true);
 
             // Thêm vào queue đồng bộ lên airtable
             await _airTableWaitingProcessRepository.InsertAsync(new AirTableWaitingProcessEntity()
@@ -405,8 +501,8 @@ namespace TK.Twitter.Crawl.Jobs
                 UserId = item.UserId,
                 TweetId = item.TweetId,
                 Action = "UPDATE",
-                LeadId = leadOfAt.Id,
-                UserScreenName = leadOfAt.UserScreenName
+                LeadId = leadCurrent.Id,
+                UserScreenName = leadCurrent.UserScreenName
             });
         }
 

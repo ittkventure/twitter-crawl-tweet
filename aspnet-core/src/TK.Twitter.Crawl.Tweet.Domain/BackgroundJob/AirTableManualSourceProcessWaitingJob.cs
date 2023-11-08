@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
@@ -46,6 +47,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly TwitterFollowingCrawlService _twitterFollowingCrawlService;
+        private readonly IRepository<LeadAnotherSourceEntity, long> _leadAnotherSourceRepository;
 
         public AirTableManualSourceProcessWaitingJob(
             IBackgroundJobManager backgroundJobManager,
@@ -62,7 +64,8 @@ namespace TK.Twitter.Crawl.Jobs
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             IDistributedLockProvider distributedLockProvider,
-            TwitterFollowingCrawlService twitterFollowingCrawlService)
+            TwitterFollowingCrawlService twitterFollowingCrawlService,
+            IRepository<LeadAnotherSourceEntity, long> leadAnotherSourceRepository)
         {
             _backgroundJobManager = backgroundJobManager;
             _airTableWaitingProcessRepository = airTableWaitingProcessRepository;
@@ -79,6 +82,7 @@ namespace TK.Twitter.Crawl.Jobs
             _unitOfWorkManager = unitOfWorkManager;
             _distributedLockProvider = distributedLockProvider;
             _twitterFollowingCrawlService = twitterFollowingCrawlService;
+            _leadAnotherSourceRepository = leadAnotherSourceRepository;
         }
 
         [UnitOfWork(IsDisabled = true)]
@@ -126,6 +130,8 @@ namespace TK.Twitter.Crawl.Jobs
 
                             var recordSignals = record.Signals.Split(",").Distinct();
 
+                            string signalCodes;
+
                             switch (item.Action)
                             {
                                 case "CREATE":
@@ -141,6 +147,7 @@ namespace TK.Twitter.Crawl.Jobs
 
                                     await _airTableManualSourceRepository.UpdateAsync(record);
 
+                                    signalCodes = string.Empty;
                                     foreach (var signal in recordSignals)
                                     {
                                         var signalCode = CrawlConsts.Signal.GetCode(signal);
@@ -149,11 +156,18 @@ namespace TK.Twitter.Crawl.Jobs
                                             continue;
                                         }
 
+                                        if (signalCodes.IsNotEmpty())
+                                        {
+                                            signalCodes += ",";
+                                        }
+
+                                        signalCodes += signalCode;
+
                                         await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
                                         {
                                             UserId = user.Id,
                                             Source = CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE,
-                                            AirTableRecordId = record.RecordId,
+                                            RefId = record.RecordId,
                                             Signal = signalCode
                                         });
                                     }
@@ -183,6 +197,20 @@ namespace TK.Twitter.Crawl.Jobs
                                         }, autoSave: true);
                                     }
 
+                                    await _leadAnotherSourceRepository.InsertAsync(new LeadAnotherSourceEntity()
+                                    {
+                                        RefId = item.RecordId,
+                                        Source = CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE,
+                                        UserId = user.Id,
+                                        UserScreenName = user.ScreenName,
+                                        UserName = user.Name,
+                                        Signals = signalCodes,
+                                        MediaMentioned = record.LastestSignalFrom,
+                                        SignalUrl = record.LastestSignalUrl,
+                                        Description = record.LastestSignalDescription,
+                                        UpdatedAt = record.LastestSignalTime
+                                    });
+
                                     await _leadWaitingProcessRepository.InsertAsync(new LeadWaitingProcessEntity()
                                     {
                                         BatchKey = "MANUAL_SOURCE",
@@ -196,6 +224,8 @@ namespace TK.Twitter.Crawl.Jobs
 
                                     // chỉ update signal, bỏ qua user type, user status
 
+                                    signalCodes = string.Empty;
+
                                     var signals = await _twitterUserSignalRepository.GetListAsync(x => x.UserId == record.UserId && x.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE);
                                     foreach (var signal in recordSignals)
                                     {
@@ -205,19 +235,45 @@ namespace TK.Twitter.Crawl.Jobs
                                             continue;
                                         }
 
+                                        if (signalCodes.IsNotEmpty())
+                                        {
+                                            signalCodes += ",";
+                                        }
+
+                                        signalCodes += signalCode;
+
                                         var alreadyExist = signals.Any(x => x.Signal == signalCode);
                                         if (alreadyExist)
                                         {
                                             continue;
                                         }
-
+                                                                     
                                         await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
                                         {
                                             UserId = record.UserId,
                                             Signal = signalCode,
                                             Source = CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE,
-                                            AirTableRecordId = record.RecordId,
+                                            RefId = record.RecordId,
                                         });
+                                    }
+
+                                    if (signalCodes.IsNotEmpty())
+                                    {
+                                        // chỉ update signal nên k cần thêm vào bảng another source
+
+                                        //await _leadAnotherSourceRepository.InsertAsync(new LeadAnotherSourceEntity()
+                                        //{
+                                        //    RefId = item.RecordId,
+                                        //    Source = CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE,
+                                        //    UserId = record.UserId,
+                                        //    UserScreenName = record.UserScreenName,
+                                        //    UserName = record.UserName,
+                                        //    Signals = signalCodes,
+                                        //    MediaMentioned = record.LastestSignalFrom,
+                                        //    SignalUrl = record.LastestSignalUrl,
+                                        //    Description = record.LastestSignalDescription,
+                                        //    UpdatedAt = record.LastestSignalTime
+                                        //});
                                     }
 
                                     await _leadWaitingProcessRepository.InsertAsync(new LeadWaitingProcessEntity()

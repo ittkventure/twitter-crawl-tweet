@@ -102,6 +102,9 @@ public class CrawlDbContext :
     public DbSet<CoinBaseWebhookProcessEntity> CoinBaseWebhookProcessEntities { get; set; }
     public DbSet<AirTableWebhookLogEntity> AirTableWebhookLogEntities { get; set; }
     public DbSet<AirTableWebhookProcessEntity> AirTableWebhookProcessEntities { get; set; }
+    public DbSet<LeadAnotherSourceEntity> LeadAnotherSourceEntities { get; set; }
+    public DbSet<CoinGeckoCoinEntity> CoinGeckoCoinEntities { get; set; }
+    public DbSet<CoinGeckoCoinWaitingProcessEntity> CoinGeckoCoinWaitingProcessEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -305,6 +308,7 @@ public class CrawlDbContext :
             b.Property(x => x.UserId).HasMaxLength(40);
             b.Property(x => x.Signal).HasMaxLength(128);
             b.Property(x => x.AirTableRecordId).HasMaxLength(128);
+            b.Property(x => x.RefId).HasMaxLength(256);
             b.Property(x => x.Source).HasMaxLength(128);
             b.HasIndex(x => new { x.UserId });
             b.HasIndex(x => new { x.Signal });
@@ -462,6 +466,47 @@ public class CrawlDbContext :
             b.Property(x => x.Note).HasMaxLength(2056);
 
             b.HasIndex(x => new { x.EventId, x.Ended, x.Succeeded });
+        });
+
+        builder.Entity<LeadAnotherSourceEntity>(b =>
+        {
+            b.ToTable("lead_another_source");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.RefId).HasMaxLength(256);
+            b.Property(x => x.Source).HasMaxLength(256);
+            b.Property(x => x.UserId).HasMaxLength(256);
+            b.Property(x => x.UserName).HasMaxLength(512);
+            b.Property(x => x.UserScreenName).HasMaxLength(256);
+            b.Property(x => x.SignalUrl).HasMaxLength(1024);
+            b.Property(x => x.Signals).HasMaxLength(1024);
+            b.Property(x => x.Description).HasMaxLength(1024);
+            b.Property(x => x.MediaMentioned).HasMaxLength(1024);
+
+            b.HasIndex(x => new { x.UserId });
+        });
+
+        builder.Entity<CoinGeckoCoinEntity>(b =>
+        {
+            b.ToTable("coin_gecko_coin");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.CoinId).HasMaxLength(256);
+            b.Property(x => x.Symbol).HasMaxLength(256);
+            b.Property(x => x.Name).HasMaxLength(512);
+
+            b.HasIndex(x => new { x.CoinId });
+        });
+
+        builder.Entity<CoinGeckoCoinWaitingProcessEntity>(b =>
+        {
+            b.ToTable("coin_gecko_coin_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.CoinId).HasMaxLength(256);
+            b.Property(x => x.Action).HasMaxLength(256);
+
+            b.HasIndex(x => new { x.Ended });
         });
     }
 }

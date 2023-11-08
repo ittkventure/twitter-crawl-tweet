@@ -42,7 +42,7 @@ public class ConsoleAppHostedService : IHostedService
             using var uow = uowManager.Begin();
 
             await application.ServiceProvider
-                             .GetRequiredService<TestTwitterGetTweet>().Test();              
+                             .GetRequiredService<TestCoinGecko>().Test();              
                              //.GetRequiredService<TestAirTable>().Test();              
                              //.GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
                              //.GetRequiredService<TestUserPlan>().RunAsync();

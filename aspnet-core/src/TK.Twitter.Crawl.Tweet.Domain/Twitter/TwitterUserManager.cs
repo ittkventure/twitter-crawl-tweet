@@ -14,7 +14,7 @@ namespace TK.Twitter.Crawl
             _repository = repository;
         }
 
-        public async Task AddOrUpdateUserAsync(TwitterUserEntity dto)
+        public async Task AddOrUpdateUserAsync(TwitterUserEntity dto, bool autoSave = false)
         {
             var user = await _repository.FirstOrDefaultAsync(x => x.UserId == dto.UserId);
             if (user != null)
@@ -28,7 +28,7 @@ namespace TK.Twitter.Crawl
                 return;
             }
 
-            await _repository.InsertAsync(dto);
+            await _repository.InsertAsync(dto, autoSave);
         }
 
     }

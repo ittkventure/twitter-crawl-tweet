@@ -13,5 +13,7 @@ namespace TK.Twitter.Crawl.Entity
         public string TweetId { get; set; }
 
         public string AirTableRecordId { get; set; }
+
+        public string RefId { get; set; }
     }
 }

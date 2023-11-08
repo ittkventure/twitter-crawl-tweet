@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.AirTable;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
@@ -34,6 +35,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IDistributedLockProvider _distributedLockProvider;
+        private readonly MemoryLockProvider _memoryLockProvider;
 
         public AirTableProcessWaitingJob(
             IBackgroundJobManager backgroundJobManager,
@@ -44,7 +46,8 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            IDistributedLockProvider distributedLockProvider)
+            IDistributedLockProvider distributedLockProvider,
+            MemoryLockProvider memoryLockProvider)
         {
             _backgroundJobManager = backgroundJobManager;
             _airTableWaitingProcessRepository = airTableWaitingProcessRepository;
@@ -55,12 +58,13 @@ namespace TK.Twitter.Crawl.Jobs
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _distributedLockProvider = distributedLockProvider;
+            _memoryLockProvider = memoryLockProvider;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(AirTableProcessWaitingJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"AirTableProcessWaitingJob"))
+            using (var handle = _memoryLockProvider.TryAcquireLock($"AirTableProcessWaitingJob"))
             {
                 if (handle == null)
                 {

@@ -9,7 +9,6 @@ using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
-using static TK.Twitter.Crawl.CrawlConsts;
 
 namespace TK.Twitter.Crawl.Tweet
 {
@@ -26,6 +25,8 @@ namespace TK.Twitter.Crawl.Tweet
         private readonly IRepository<TwitterUserSignalEntity, long> _twitterUserSignalRepository;
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingRepository;
         private readonly IRepository<AirTableManualSourceEntity, long> _airTableManualSourceRepository;
+        private readonly IRepository<CoinGeckoCoinEntity, long> _coinGeckoCoinRepository;
+        private readonly IRepository<LeadAnotherSourceEntity, long> _leadAnotherSourceRepository;
         private readonly ITwitterTweetMentionDapperRepository _twitterTweetMentionDapperRepository;
 
         public Lead3Manager(
@@ -40,6 +41,8 @@ namespace TK.Twitter.Crawl.Tweet
             IRepository<TwitterUserSignalEntity, long> twitterUserSignalRepository,
             IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository,
             IRepository<AirTableManualSourceEntity, long> airTableManualSourceRepository,
+            IRepository<CoinGeckoCoinEntity, long> coinGeckoCoinRepository,
+            IRepository<LeadAnotherSourceEntity, long> leadAnotherSourceRepository,
             ITwitterTweetMentionDapperRepository twitterTweetMentionDapperRepository)
         {
             _tweetRepository = tweetRepository;
@@ -53,10 +56,12 @@ namespace TK.Twitter.Crawl.Tweet
             _twitterUserSignalRepository = twitterUserSignalRepository;
             _airTableLeadRecordMappingRepository = airTableLeadRecordMappingRepository;
             _airTableManualSourceRepository = airTableManualSourceRepository;
+            _coinGeckoCoinRepository = coinGeckoCoinRepository;
+            _leadAnotherSourceRepository = leadAnotherSourceRepository;
             _twitterTweetMentionDapperRepository = twitterTweetMentionDapperRepository;
         }
 
-        public async Task<PagingResult<TweetMentionDto>> GetLeadsAsync(
+        public async Task<PagingResult<TweetLeadDto>> GetLeadsAsync(
             int pageNumber,
             int pageSize,
             string userStatus = null,
@@ -77,7 +82,7 @@ namespace TK.Twitter.Crawl.Tweet
 
             var query = await GetLeadQueryableAsync(userStatus, userType, searchText, ownerUserScreenName, signal);
 
-            var pr = new PagingResult<TweetMentionDto>();
+            var pr = new PagingResult<TweetLeadDto>();
             pr.TotalCount = await AsyncExecuter.CountAsync(query);
             if (pr.TotalCount == 0)
             {
@@ -94,7 +99,7 @@ namespace TK.Twitter.Crawl.Tweet
             return pr;
         }
 
-        public async Task<IQueryable<TweetMentionDto>> GetLeadQueryableAsync(
+        public async Task<IQueryable<TweetLeadDto>> GetLeadQueryableAsync(
            string userStatus = null,
            string userType = null,
            string searchText = null,
@@ -158,7 +163,7 @@ namespace TK.Twitter.Crawl.Tweet
                                                                 || tweetWithMentionCountQuery.Any(x => x.tweet.FullText.Contains(searchText.ToLower())));
             query = query.WhereIf(signal.IsNotEmpty(), x => signalQuery.Any(s => s.Signal == signal && x.mention_main.UserId == s.UserId));
 
-            return query.Select(q => new TweetMentionDto()
+            return query.Select(q => new TweetLeadDto()
             {
                 UserId = q.mention_main.UserId,
                 LastestTweetId = q.mention_main.TweetId,
@@ -170,7 +175,7 @@ namespace TK.Twitter.Crawl.Tweet
             });
         }
 
-        public async Task<List<TweetMentionDto>> PrepareLeadDtoAsync(List<TweetMentionDto> items)
+        public async Task<List<TweetLeadDto>> PrepareLeadDtoAsync(List<TweetLeadDto> items)
         {
             var mentionQuery = await _tweetUserMentionRepository.GetQueryableAsync();
             var tweetQuery = await _tweetRepository.GetQueryableAsync();
@@ -217,7 +222,7 @@ namespace TK.Twitter.Crawl.Tweet
                         item.TweetDescription = "Just listed in Coingecko";
                         item.TweetOwnerUserId = null;
                     }
-                    else if (item.HashTags.Any(ht => ht.EqualsIgnoreCase("coinmarketcap")))
+                    if (item.HashTags.Any(ht => ht.EqualsIgnoreCase("coinmarketcap")))
                     {
                         item.MediaMentioned = "Coinmarketcap";
                         item.LastestSponsoredTweetUrl = "https://coinmarketcap.com/new/";
@@ -245,7 +250,7 @@ namespace TK.Twitter.Crawl.Tweet
             return items;
         }
 
-        public async Task<List<TweetMentionDto>> GetLeadsAsync(List<string> userIds = null, bool notExistInAirTable = false)
+        public async Task<List<TweetLeadDto>> GetLeadsAsync(List<string> userIds = null, bool notExistInAirTable = false)
         {
             var query = await GetLeadQueryableAsync();
 
@@ -284,20 +289,29 @@ namespace TK.Twitter.Crawl.Tweet
             var manualSourceSignals = await AsyncExecuter.ToListAsync(
 
                 from s in signalQuery
-                join ms in manualSourceQuery on s.AirTableRecordId equals ms.RecordId
+                join ms in manualSourceQuery on s.RefId equals ms.RecordId
                 where s.Source == CrawlConsts.Signal.Source.AIR_TABLE_MANUAL_SOURCE && userIds.Contains(s.UserId)
-                select new { UserId = s.UserId, Owner = ms.LastestSignalFrom, OwnerId = ms.UserId, Signal = s.Signal }
+                select new { UserId = s.UserId, Owner = ms.LastestSignalFrom, OwnerId = string.Empty, Signal = s.Signal }
                 );
 
-            var signals = anotherSignals.Union(manualSourceSignals).ToList();
+            var coinGeckoSourceSignals = await AsyncExecuter.ToListAsync(
+                from s in signalQuery
+                join ms in await _leadAnotherSourceRepository.GetQueryableAsync() on s.RefId equals ms.RefId
+                where s.Source == CrawlConsts.Signal.Source.COIN_GECKO && ms.Source == CrawlConsts.Signal.Source.COIN_GECKO && userIds.Contains(s.UserId)
+                select new { UserId = s.UserId, Owner = ms.MediaMentioned, OwnerId = string.Empty, Signal = s.Signal }
+                );
+
+            var signals = anotherSignals.Union(manualSourceSignals)
+                                        .Union(coinGeckoSourceSignals)
+                                        .ToList();
 
             foreach (var userId in userIds)
             {
-                var anotherSignal = signals.Where(x => x.UserId == userId).ToList();
-                if (anotherSignal.IsNotEmpty())
+                var userAnotherSignal = signals.Where(x => x.UserId == userId).ToList();
+                if (userAnotherSignal.IsNotEmpty())
                 {
                     var sb = new StringBuilder();
-                    var groupBy = anotherSignal.GroupBy(x => new { x.UserId, x.Signal, x.Owner, x.OwnerId }).Select(x => new { x.Key, Count = x.Count() });
+                    var groupBy = userAnotherSignal.GroupBy(x => new { x.UserId, x.Signal, x.Owner, x.OwnerId }).Select(x => new { x.Key, Count = x.Count() });
                     foreach (var gb in groupBy)
                     {
                         if (sb.Length > 0)
@@ -330,5 +344,6 @@ namespace TK.Twitter.Crawl.Tweet
 
             return dict;
         }
+
     }
 }

@@ -6,6 +6,6 @@ namespace TK.Twitter.Crawl.Repository
 {
     public interface ITwitterTweetMentionDapperRepository
     {
-        Task<PagingResult<TweetMentionDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName);
+        Task<PagingResult<TweetLeadDto>> GetMentionListAsync(int pageNumber, int pageSize, string userStatus, string userType, string searchText, string ownerUserScreenName);
     }
 }

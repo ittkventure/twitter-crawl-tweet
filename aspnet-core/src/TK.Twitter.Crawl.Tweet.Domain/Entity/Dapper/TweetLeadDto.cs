@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace TK.Twitter.Crawl.Entity.Dapper
 {
-    public class TweetMentionDto
+    public class TweetLeadDto
     {
         public string UserId { get; set; }
         public string LastestTweetId { get; set; }

@@ -6,11 +6,13 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
+using TK.CoinGecko.Client.CoinGecko.Service;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.Admin.Dto;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using TK.Twitter.Crawl.Tweet.Payment;
 using TK.Twitter.Crawl.Tweet.User;
 using Volo.Abp;
@@ -38,6 +40,8 @@ namespace TK.Twitter.Crawl.Tweet.Admin
         private readonly IRepository<IdentityUser, Guid> _userRepository;
         private readonly IRepository<UserPlanEntity, Guid> _userPlanRepository;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly MemoryLockProvider _memoryLockProvider;
+        private readonly ICoinGeckoService _coinGeckoService;
 
         public AdminTweetAppService(
             IRepository<TwitterTweetEntity, long> tweetRepository,
@@ -55,7 +59,9 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             PaddleAfterWebhookLogAddedHandler paddleAfterWebhookLogAddedHandler,
             IRepository<IdentityUser, Guid> userRepository,
             IRepository<UserPlanEntity, Guid> userPlanRepository,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            MemoryLockProvider memoryLockProvider,
+            ICoinGeckoService coinGeckoService)
         {
             _tweetRepository = tweetRepository;
             _tweetUserTypeRepository = tweetUserTypeRepository;
@@ -73,11 +79,13 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             _userRepository = userRepository;
             _userPlanRepository = userPlanRepository;
             _userManager = userManager;
+            _memoryLockProvider = memoryLockProvider;
+            _coinGeckoService = coinGeckoService;
         }
 
         #region Lead3
 
-        public async Task<PagingResult<TweetMentionDto>> GetMentionListAsync(
+        public async Task<PagingResult<TweetLeadDto>> GetMentionListAsync(
             int pageNumber,
             int pageSize,
             string userStatus,
@@ -356,6 +364,21 @@ namespace TK.Twitter.Crawl.Tweet.Admin
             await _paddleAfterWebhookLogAddedHandler.SendEmailWelCome(email, CrawlConsts.Payment.IsStandardPlan(planKey), token);
 
             return "success";
+        }
+
+        #endregion
+
+        #region Lock
+
+        public Task<string> ClearLock(string lockKey)
+        {
+            _memoryLockProvider.ClearLock(lockKey);
+            return Task.FromResult("success");
+        }
+
+        public Task<string> GetCoin(string coinId)
+        {
+            return _coinGeckoService.GetCoinDetailById(coinId);
         }
 
         #endregion

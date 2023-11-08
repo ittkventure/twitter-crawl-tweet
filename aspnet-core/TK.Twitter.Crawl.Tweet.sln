@@ -65,6 +65,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Paddle.HttpApi", "module
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.Paddle.Application", "modules\paddle\TK.Paddle.Application\TK.Paddle.Application.csproj", "{A39AB689-39B1-4A1C-A589-56DB431B8CBA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "coin-gecko", "coin-gecko", "{1AD5BD02-EE27-4163-B883-27A7BC2A3902}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TK.CoinGecko.Client", "modules\coin-gecko\TK.CoinGecko.Client\TK.CoinGecko.Client.csproj", "{A823D727-45CC-41F0-9DDF-B2A76E25B698}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -171,6 +175,10 @@ Global
 		{A39AB689-39B1-4A1C-A589-56DB431B8CBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A39AB689-39B1-4A1C-A589-56DB431B8CBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A39AB689-39B1-4A1C-A589-56DB431B8CBA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A823D727-45CC-41F0-9DDF-B2A76E25B698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A823D727-45CC-41F0-9DDF-B2A76E25B698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A823D727-45CC-41F0-9DDF-B2A76E25B698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A823D727-45CC-41F0-9DDF-B2A76E25B698}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,6 +213,8 @@ Global
 		{5D349D71-CD7D-4DEF-9261-22FF2CB66667} = {6FFB0BFF-16FB-4047-A28B-35214B69EE56}
 		{E3AE72D0-FEF4-45F0-8E7B-E694D2C00D11} = {6FFB0BFF-16FB-4047-A28B-35214B69EE56}
 		{A39AB689-39B1-4A1C-A589-56DB431B8CBA} = {6FFB0BFF-16FB-4047-A28B-35214B69EE56}
+		{1AD5BD02-EE27-4163-B883-27A7BC2A3902} = {8C828DC4-2560-42B8-ACF7-BB426850CACF}
+		{A823D727-45CC-41F0-9DDF-B2A76E25B698} = {1AD5BD02-EE27-4163-B883-27A7BC2A3902}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {28315BFD-90E7-4E14-A2EA-F3D23AF4126F}

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Notification;
 using TK.Twitter.Crawl.Tweet.AirTable;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using Volo.Abp;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
@@ -38,6 +39,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly AirTableService _airTableService;
         private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly IDistributedEventBus _distributedEventBus;
+        private readonly MemoryLockProvider _memoryLockProvider;
 
         public AirTableCheckDataJob(
             IBackgroundJobManager backgroundJobManager,
@@ -50,7 +52,8 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableService airTableService,
             IDistributedLockProvider distributedLockProvider,
             IDistributedEventBus distributedEventBus,
-            ILogger<AirTableCheckDataJob> logger)
+            ILogger<AirTableCheckDataJob> logger,
+            MemoryLockProvider memoryLockProvider)
         {
             _backgroundJobManager = backgroundJobManager;
             _airTableLeadRecordMappingepository = airTableLeadRecordMappingepository;
@@ -62,13 +65,14 @@ namespace TK.Twitter.Crawl.Jobs
             _airTableService = airTableService;
             _distributedLockProvider = distributedLockProvider;
             _distributedEventBus = distributedEventBus;
+            _memoryLockProvider = memoryLockProvider;
             Logger = logger;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(AirTableCheckDataJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"AirTableCheckDataJob"))
+            using (var handle = _memoryLockProvider.TryAcquireLock($"AirTableCheckDataJob"))
             {
                 if (handle == null)
                 {

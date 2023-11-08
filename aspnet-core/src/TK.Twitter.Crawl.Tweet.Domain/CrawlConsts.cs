@@ -43,6 +43,7 @@ public static class CrawlConsts
         {
             public const string TWITTER_TWEET = "TWITTER_TWEET";
             public const string AIR_TABLE_MANUAL_SOURCE = "AIR_TABLE_MANUAL_SOURCE";
+            public const string COIN_GECKO = "COIN_GECKO";
         }
 
         public const string LISTING_CEX = "LISTING_CEX";

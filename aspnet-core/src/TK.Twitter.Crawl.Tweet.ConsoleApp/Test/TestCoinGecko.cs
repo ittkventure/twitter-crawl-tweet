@@ -9,6 +9,10 @@ using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Linq;
+using System.Diagnostics.Metrics;
+using System.Diagnostics;
+using System.Numerics;
+using Telegram.Bot.Types;
 
 namespace TK.Twitter.Crawl.ConsoleApp.Test
 {
@@ -43,7 +47,31 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
             var goingAddCoins = new List<string>()
             {
-                "ebase"
+                "zarp-stablecoin",
+                "turbobot",
+                "truck",
+                "titanx",
+                "taho",
+                "super-cycle",
+                "salsa-liquid-multiversx",
+                "promptide",
+                "planet-hares",
+                "physics",
+                "orb-wizz-council",
+                "naxion",
+                "mintra",
+                "megaton-finance-wrapped-toncoin",
+                "iotec-finance",
+                "horizon-protocol-zbnb",
+                "grokdogex",
+                "gambex",
+                "flooring-protocol-microotherdeed",
+                "flooring-protocol-micronakamigos",
+                "flooring-protocol-microdegods",
+                "flooring-protocol-microclonex",
+                "bridged-wrapped-ether-fuse",
+                "bridged-usdc-fuse",
+                "aves"
             };
 
             var inserts = new List<CoinGeckoCoinEntity>();

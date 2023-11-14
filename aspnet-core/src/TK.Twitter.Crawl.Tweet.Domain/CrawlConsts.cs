@@ -143,15 +143,16 @@ public static class CrawlConsts
         public const string LEAD3_STD_MONTHLY = "StandardMonthly";
         public const string LEAD3_STD_ANNUALLY = "StandardAnnually";
         public const string LEAD3_PRE_MONTHLY_TK_PARTNER_15 = "PremiumMonthly_TK_Partner_15";
+        public const string LEAD3_STD_MONTHLY_TK_PARTNER_15 = "StandardMonthly_TK_Partner_15";
         public const string LEAD3_PRE_MONTHLY = "PremiumMonthly";
         public const string LEAD3_PRE_ANNUALLY = "PremiumAnnually";
         public const string LEAD3_TRIAL = "Trial";
 
-        public static List<string> PAID_PLAN = new List<string>() { LEAD3_STD_MONTHLY, LEAD3_STD_ANNUALLY, LEAD3_PRE_MONTHLY, LEAD3_PRE_ANNUALLY, LEAD3_PRE_MONTHLY_TK_PARTNER_15 };
+        public static List<string> PAID_PLAN = new List<string>() { LEAD3_STD_MONTHLY, LEAD3_STD_ANNUALLY, LEAD3_PRE_MONTHLY, LEAD3_PRE_ANNUALLY, LEAD3_PRE_MONTHLY_TK_PARTNER_15, LEAD3_STD_MONTHLY_TK_PARTNER_15 };
 
         public static bool IsPremiumPlan(string key)
         {
-            return key == LEAD3_PRE_ANNUALLY || key == LEAD3_PRE_MONTHLY || key == LEAD3_PRE_MONTHLY_TK_PARTNER_15;
+            return key == LEAD3_PRE_ANNUALLY || key == LEAD3_PRE_MONTHLY || key == LEAD3_PRE_MONTHLY_TK_PARTNER_15 || key == LEAD3_STD_MONTHLY_TK_PARTNER_15;
         }
 
         public static bool IsStandardPlan(string key)
@@ -175,6 +176,7 @@ public static class CrawlConsts
                 case LEAD3_PRE_MONTHLY:
                 case LEAD3_PRE_ANNUALLY:
                 case LEAD3_PRE_MONTHLY_TK_PARTNER_15:
+                case LEAD3_STD_MONTHLY_TK_PARTNER_15:
                     return true;
                 default:
                     return false;

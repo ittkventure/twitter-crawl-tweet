@@ -1,11 +1,8 @@
-﻿using Medallion.Threading;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
-using TK.Twitter.Crawl.Tweet;
 using TK.Twitter.Crawl.Tweet.AirTable;
 using TK.Twitter.Crawl.Tweet.MemoryLock;
 using Volo.Abp.BackgroundJobs;
@@ -34,7 +31,6 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly AirTableLead3Manager _airTableManager;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
-        private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly MemoryLockProvider _memoryLockProvider;
 
         public AirTableProcessWaitingJob(
@@ -46,7 +42,6 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            IDistributedLockProvider distributedLockProvider,
             MemoryLockProvider memoryLockProvider)
         {
             _backgroundJobManager = backgroundJobManager;
@@ -57,7 +52,6 @@ namespace TK.Twitter.Crawl.Jobs
             _airTableManager = airTableManager;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
-            _distributedLockProvider = distributedLockProvider;
             _memoryLockProvider = memoryLockProvider;
         }
 

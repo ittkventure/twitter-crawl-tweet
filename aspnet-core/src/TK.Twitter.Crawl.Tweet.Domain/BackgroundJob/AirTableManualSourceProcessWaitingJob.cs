@@ -1,14 +1,12 @@
-﻿using Medallion.Threading;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet.AirTable;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using TK.Twitter.Crawl.Tweet.TwitterAPI.Dto.FollowingCrawl;
 using TK.Twitter.Crawl.TwitterAPI;
 using TK.Twitter.Crawl.TwitterAPI.Dto;
@@ -45,8 +43,8 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly AirTableLead3Manager _airTableManager;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
-        private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly TwitterFollowingCrawlService _twitterFollowingCrawlService;
+        private readonly MemoryLockProvider _memoryLockProvider;
         private readonly IRepository<LeadAnotherSourceEntity, long> _leadAnotherSourceRepository;
 
         public AirTableManualSourceProcessWaitingJob(
@@ -63,8 +61,8 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            IDistributedLockProvider distributedLockProvider,
             TwitterFollowingCrawlService twitterFollowingCrawlService,
+            MemoryLockProvider memoryLockProvider,
             IRepository<LeadAnotherSourceEntity, long> leadAnotherSourceRepository)
         {
             _backgroundJobManager = backgroundJobManager;
@@ -80,15 +78,15 @@ namespace TK.Twitter.Crawl.Jobs
             _airTableManager = airTableManager;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
-            _distributedLockProvider = distributedLockProvider;
             _twitterFollowingCrawlService = twitterFollowingCrawlService;
+            _memoryLockProvider = memoryLockProvider;
             _leadAnotherSourceRepository = leadAnotherSourceRepository;
         }
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(AirTableManualSourceProcessWaitingJobArg args)
         {
-            await using (var handle = await _distributedLockProvider.TryAcquireLockAsync($"AirTableManualSourceProcessWaitingJob"))
+            using (var handle = _memoryLockProvider.TryAcquireLock($"AirTableManualSourceProcessWaitingJob"))
             {
                 if (handle == null)
                 {

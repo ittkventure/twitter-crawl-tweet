@@ -1,5 +1,4 @@
 ﻿using AirtableApiClient;
-using Medallion.Threading;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
@@ -41,7 +40,6 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly AirTableService _airTableService;
-        private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly IDistributedEventBus _distributedEventBus;
         private readonly MemoryLockProvider _memoryLockProvider;
 
@@ -52,7 +50,6 @@ namespace TK.Twitter.Crawl.Jobs
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             AirTableService airTableService,
-            IDistributedLockProvider distributedLockProvider,
             IDistributedEventBus distributedEventBus,
             ILogger<AirTableCheckDataManualSourceJob> logger,
             MemoryLockProvider memoryLockProvider)
@@ -63,7 +60,6 @@ namespace TK.Twitter.Crawl.Jobs
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _airTableService = airTableService;
-            _distributedLockProvider = distributedLockProvider;
             _distributedEventBus = distributedEventBus;
             _memoryLockProvider = memoryLockProvider;
             Logger = logger;

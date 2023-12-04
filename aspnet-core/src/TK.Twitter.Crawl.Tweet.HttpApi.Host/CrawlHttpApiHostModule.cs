@@ -2,9 +2,7 @@
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using HangfireBasicAuthenticationFilter;
 using Medallion.Threading;
-using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
@@ -21,7 +19,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using TK.Twitter.Crawl.BackgroundWorkers;
 using TK.Twitter.Crawl.EntityFrameworkCore;
 using TK.Twitter.Crawl.MultiTenancy;
@@ -30,12 +27,10 @@ using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.MultiTenancy;
 using Volo.Abp.AspNetCore.Mvc;
-using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.BackgroundJobs.Hangfire;
-using Volo.Abp.DistributedLocking;
 using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Modularity;
 using Volo.Abp.Swashbuckle;
@@ -106,11 +101,11 @@ public class CrawlHttpApiHostModule : AbpModule
             options.Kind = DateTimeKind.Utc;
         });
 
-        context.Services.AddSingleton<IDistributedLockProvider>(sp =>
-        {
-            var connection = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
-            return new RedisDistributedSynchronizationProvider(connection.GetDatabase());
-        });
+        //context.Services.AddSingleton<IDistributedLockProvider>(sp =>
+        //{
+        //    var connection = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
+        //    return new RedisDistributedSynchronizationProvider(connection.GetDatabase());
+        //});
     }
 
     private void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -307,7 +302,7 @@ public class CrawlHttpApiHostModule : AbpModule
 #if !DEBUG
             Authorization = new[]
             {
-                new HangfireCustomBasicAuthenticationFilter{
+                new HangfireBasicAuthenticationFilter.HangfireCustomBasicAuthenticationFilter{
                     User = config.GetValue<string>("HangfireSettings:UserName"),
                     Pass = config.GetValue<string>("HangfireSettings:Password")
                 }

@@ -1,14 +1,9 @@
-﻿using Medallion.Threading;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
-using TK.Twitter.Crawl.Tweet.AirTable;
 using TK.Twitter.Crawl.Tweet.MemoryLock;
 using TK.Twitter.Crawl.Tweet.TwitterAPI.Dto.FollowingCrawl;
 using TK.Twitter.Crawl.TwitterAPI;

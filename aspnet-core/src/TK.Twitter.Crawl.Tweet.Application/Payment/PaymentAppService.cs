@@ -1,5 +1,4 @@
-﻿using Medallion.Threading;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,20 +13,17 @@ namespace TK.Twitter.Crawl.Tweet.Payment
 {
     public class PaymentAppService : CrawlAppService
     {
-        private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly IRepository<PaymentOrderEntity, Guid> _paymentOrderRepository;
         private readonly PaddlePaymentManager _paddlePaymentManager;
         private readonly UserPlanManager _userPlanManager;
         private readonly IConfiguration _configuration;
 
         public PaymentAppService(
-            IDistributedLockProvider distributedLockProvider,
             IRepository<PaymentOrderEntity, Guid> paymentOrderRepository,
             PaddlePaymentManager paddlePaymentManager,
             UserPlanManager userPlanManager,
             IConfiguration configuration)
         {
-            _distributedLockProvider = distributedLockProvider;
             _paymentOrderRepository = paymentOrderRepository;
             _paddlePaymentManager = paddlePaymentManager;
             _userPlanManager = userPlanManager;

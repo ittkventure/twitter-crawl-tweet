@@ -1,16 +1,12 @@
-﻿using Medallion.Threading;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ConstrainedExecution;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
-using TK.Twitter.Crawl.Entity.Dapper;
 using TK.Twitter.Crawl.Notification;
-using TK.Twitter.Crawl.Repository;
 using TK.Twitter.Crawl.TwitterAPI;
 using TK.Twitter.Crawl.TwitterAPI.Dto;
 using TK.TwitterAccount.Domain;
@@ -65,7 +61,6 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly TwitterAPITweetService _twitterAPITweetService;
         private readonly ITwitterAccountRepository _twitterAccountRepository;
-        private readonly IDistributedLockProvider _distributedLockProvider;
         private readonly IMemoryCache _memoryCache;
         private readonly IDistributedEventBus _distributedEventBus;
 
@@ -88,7 +83,6 @@ namespace TK.Twitter.Crawl.Jobs
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
             ITwitterAccountRepository twitterAccountRepository,
-            IDistributedLockProvider distributedLockProvider,
             IMemoryCache memoryCache,
             IDistributedEventBus distributedEventBus)
         {
@@ -110,7 +104,6 @@ namespace TK.Twitter.Crawl.Jobs
             _unitOfWorkManager = unitOfWorkManager;
             _twitterAPITweetService = twitterAPITweetService;
             _twitterAccountRepository = twitterAccountRepository;
-            _distributedLockProvider = distributedLockProvider;
             _memoryCache = memoryCache;
             _distributedEventBus = distributedEventBus;
         }

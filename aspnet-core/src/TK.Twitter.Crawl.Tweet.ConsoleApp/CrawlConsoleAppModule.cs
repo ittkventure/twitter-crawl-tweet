@@ -2,12 +2,9 @@
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using Medallion.Threading;
-using Medallion.Threading.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using StackExchange.Redis;
 using System;
 using TK.Twitter.Crawl.EntityFrameworkCore;
 using Volo.Abp.Autofac;
@@ -34,12 +31,6 @@ public class CrawlConsoleAppModule : AbpModule
         Configure<AbpClockOptions>(options =>
         {
             options.Kind = DateTimeKind.Utc;
-        });
-
-        context.Services.AddSingleton<IDistributedLockProvider>(sp =>
-        {
-            var connection = ConnectionMultiplexer.Connect(configuration["Redis:Configuration"]);
-            return new RedisDistributedSynchronizationProvider(connection.GetDatabase());
         });
     }
 

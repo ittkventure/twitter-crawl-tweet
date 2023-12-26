@@ -364,5 +364,11 @@ public class CrawlHttpApiHostModule : AbpModule
         {
             RecurringJob.AddOrUpdate<CoinGeckoSyncNewCoinWorker>(nameof(CoinGeckoSyncNewCoinWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:CoinGeckoSyncNewCoinWorker:CronExpression"));
         }
+
+        RecurringJob.RemoveIfExists(nameof(AirTableNoMentionProcessWaitingWorker));
+        if (config.GetValue<bool>("RecurringJobs:AirTableNoMentionProcessWaitingWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<AirTableNoMentionProcessWaitingWorker>(nameof(AirTableNoMentionProcessWaitingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:AirTableNoMentionProcessWaitingWorker:CronExpression"));
+        }
     }
 }

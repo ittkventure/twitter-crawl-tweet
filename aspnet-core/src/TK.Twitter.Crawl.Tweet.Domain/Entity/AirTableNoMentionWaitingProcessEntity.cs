@@ -2,13 +2,13 @@
 
 namespace TK.Twitter.Crawl.Entity
 {
-    public class AirTableManualSourceWaitingProcessEntity : FullAuditedEntity<long>
+    public class AirTableNoMentionWaitingProcessEntity : FullAuditedEntity<long>
     {
-        public string RecordId { get; set; }
-
-        public string ProjectTwitter { get; set; }
+        public string RefId { get; set; }
 
         public string Action { get; set; }
+
+        public string Signals { get; set; }
 
         public bool Ended { get; set; }
 

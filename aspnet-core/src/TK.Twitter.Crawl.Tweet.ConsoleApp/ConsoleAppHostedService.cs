@@ -42,7 +42,8 @@ public class ConsoleAppHostedService : IHostedService
             using var uow = uowManager.Begin();
 
             await application.ServiceProvider
-                             .GetRequiredService<TestCoinGecko>().Test();              
+                             //.GetRequiredService<TestCoinGecko>().Test();              
+                             .GetRequiredService<ExportTweetNoMenttionReport>().RunAsync();              
                              //.GetRequiredService<TestAirTable>().Test();              
                              //.GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
                              //.GetRequiredService<TestUserPlan>().RunAsync();

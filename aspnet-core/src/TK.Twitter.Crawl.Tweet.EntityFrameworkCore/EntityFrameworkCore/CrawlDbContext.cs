@@ -105,6 +105,8 @@ public class CrawlDbContext :
     public DbSet<LeadAnotherSourceEntity> LeadAnotherSourceEntities { get; set; }
     public DbSet<CoinGeckoCoinEntity> CoinGeckoCoinEntities { get; set; }
     public DbSet<CoinGeckoCoinWaitingProcessEntity> CoinGeckoCoinWaitingProcessEntities { get; set; }
+    public DbSet<AirTableNoMentionWaitingProcessEntity> AirTableNoMentionWaitingProcessEntities { get; set; }
+    public DbSet<AirTableNoMentionEntity> AirTableNoMentionEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -358,6 +360,43 @@ public class CrawlDbContext :
             b.Property(x => x.RecordId).HasMaxLength(256);
 
             b.HasIndex(x => new { x.Ended });
+        });
+
+        builder.Entity<AirTableNoMentionWaitingProcessEntity>(b =>
+        {
+            b.ToTable("air_table_no_mention_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.RefId).HasMaxLength(512);
+            b.Property(x => x.Action).HasMaxLength(256);
+
+            b.HasIndex(x => new { x.Ended });
+        });
+
+        builder.Entity<AirTableNoMentionEntity>(b =>
+        {
+            b.ToTable("air_table_no_mention");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.UserId).HasMaxLength(40);
+            b.Property(x => x.LastestTweetId).HasMaxLength(40);
+            b.Property(x => x.UserName).HasMaxLength(512);
+            b.Property(x => x.UserScreenName).HasMaxLength(256);
+            b.Property(x => x.UserType).HasMaxLength(128);
+            b.Property(x => x.UserStatus).HasMaxLength(128);
+            b.Property(x => x.Signals).HasMaxLength(512);
+            b.Property(x => x.LastestSponsoredTweetUrl).HasMaxLength(512);
+            b.Property(x => x.TweetOwnerUserId).HasMaxLength(40);
+            b.Property(x => x.MediaMentioned).HasMaxLength(256);
+            b.Property(x => x.HashTags).HasMaxLength(1024);
+            b.Property(x => x.MediaMentionedProfileUrl).HasMaxLength(512);
+            b.Property(x => x.UserProfileUrl).HasMaxLength(512);
+            b.Property(x => x.SignalDescription).HasMaxLength(5012);
+
+            b.HasIndex(x => new { x.UserId });
+            b.HasIndex(x => new { x.Signals });
+            b.HasIndex(x => new { x.UserType });
+            b.HasIndex(x => new { x.UserStatus });
         });
 
         builder.Entity<LeadEntity>(b =>

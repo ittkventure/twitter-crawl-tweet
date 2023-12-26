@@ -47,4 +47,13 @@
 		<None Remove="Logs\**" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="Data\TweetNoMention_Result.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Data\TweetNoMention.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 </Project>

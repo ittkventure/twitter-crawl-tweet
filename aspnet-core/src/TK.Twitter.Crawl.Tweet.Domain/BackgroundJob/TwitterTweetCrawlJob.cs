@@ -60,6 +60,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<TwitterUserTypeEntity, long> _twitterUserTypeRepository;
         private readonly IRepository<TwitterUserStatusEntity, long> _twitterUserStatusRepository;
         private readonly IRepository<LeadWaitingProcessEntity, long> _leadWaitingProcessEntityRepository;
+        private readonly IRepository<AirTableNoMentionWaitingProcessEntity, long> _airTableNoMentionWaitingProcessRepository;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly TwitterAPITweetService _twitterAPITweetService;
@@ -82,6 +83,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<TwitterUserTypeEntity, long> twitterUserTypeRepository,
             IRepository<TwitterUserStatusEntity, long> twitterUserStatusRepository,
             IRepository<LeadWaitingProcessEntity, long> leadWaitingProcessEntityRepository,
+            IRepository<AirTableNoMentionWaitingProcessEntity, long> airTableNoMentionWaitingProcessRepository,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             TwitterAPITweetService twitterAPITweetService,
@@ -103,6 +105,7 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterUserTypeRepository = twitterUserTypeRepository;
             _twitterUserStatusRepository = twitterUserStatusRepository;
             _leadWaitingProcessEntityRepository = leadWaitingProcessEntityRepository;
+            _airTableNoMentionWaitingProcessRepository = airTableNoMentionWaitingProcessRepository;
             _clock = clock;
             _unitOfWorkManager = unitOfWorkManager;
             _twitterAPITweetService = twitterAPITweetService;
@@ -688,6 +691,20 @@ namespace TK.Twitter.Crawl.Jobs
                                 }
                             }
                         }
+                    }
+                }
+                else
+                {
+                    // no mention
+                    var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
+                    if (signals.IsNotEmpty())
+                    {
+                        await _airTableNoMentionWaitingProcessRepository.InsertAsync(new AirTableNoMentionWaitingProcessEntity()
+                        {
+                            RefId = tweet.TweetId,
+                            Signals = signals.JoinAsString(","),
+                            Action = "PUSH",
+                        });
                     }
                 }
             }

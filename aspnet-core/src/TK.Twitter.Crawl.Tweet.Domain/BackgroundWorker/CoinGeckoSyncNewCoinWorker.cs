@@ -24,6 +24,7 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
         private readonly IRepository<CoinGeckoCoinEntity, long> _coinGeckoCoinRepository;
         private readonly IRepository<CoinGeckoCoinWaitingProcessEntity, long> _coinGeckoCoinWaitingProcessRepository;
         private readonly ICoinGeckoService _coinGeckoService;
+        private readonly IUnitOfWorkManager _unitOfWorkManager;
 
         public IAsyncQueryableExecuter AsyncExecuter { get; set; }
         public ILogger<CoinGeckoSyncNewCoinWorker> Logger { get; }
@@ -33,25 +34,29 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
             IRepository<CoinGeckoCoinEntity, long> coinGeckoCoinRepository,
             IRepository<CoinGeckoCoinWaitingProcessEntity, long> coinGeckoCoinWaitingProcessRepository,
             ICoinGeckoService coinGeckoService,
-            ILogger<CoinGeckoSyncNewCoinWorker> logger)
+            ILogger<CoinGeckoSyncNewCoinWorker> logger,
+            IUnitOfWorkManager unitOfWorkManager)
         {
             _backgroundJobManager = backgroundJobManager;
             _coinGeckoCoinRepository = coinGeckoCoinRepository;
             _coinGeckoCoinWaitingProcessRepository = coinGeckoCoinWaitingProcessRepository;
             _coinGeckoService = coinGeckoService;
             Logger = logger;
+            _unitOfWorkManager = unitOfWorkManager;
             AsyncExecuter = _coinGeckoCoinRepository.AsyncExecuter;
         }
 
-        [UnitOfWork]
+        [UnitOfWork(IsDisabled = true)]
         public async Task DoWorkAsync()
         {
+            using var uow = _unitOfWorkManager.Begin();
+
             var allCoins = await _coinGeckoService.GetAllCoins();
 
-            var allCoinInDb = await AsyncExecuter.ToListAsync(
-                from q in await _coinGeckoCoinRepository.GetQueryableAsync()
-                select q.CoinId
-                );
+            var query = from q in await _coinGeckoCoinRepository.GetQueryableAsync()
+                        select q.CoinId;
+
+            var allCoinInDb = await AsyncExecuter.ToListAsync(query);
 
             var goingAddCoins = allCoins.Where(x => !allCoinInDb.Contains(x.Id));
             if (goingAddCoins.IsEmpty())
@@ -108,6 +113,8 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
                     })
                     );
             }
+
+            await uow.CompleteAsync();
         }
     }
 }

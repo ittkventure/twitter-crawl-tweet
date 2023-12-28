@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,7 @@ using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EventBus.Distributed;
+using Volo.Abp.TenantManagement;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -31,17 +33,6 @@ namespace TK.Twitter.Crawl.Jobs
     {
         private const string LOG_PREFIX = "[TwitterTweetCrawlJob] ";
         public const int BATCH_SIZE = 1;
-
-
-        public static List<string> IGNORE_USER_SCREENNAME_MENTIONS = new List<string>()
-            {
-                "binance",
-                "coinbase",
-                "bnbchain",
-                "epicgames",
-                "bitfinex",
-                "bitmartexchange",
-            };
 
         private readonly IBackgroundJobManager _backgroundJobManager;
         private readonly IRepository<TwitterTweetCrawlQueueEntity, long> _twitterTweetCrawlQueueRepository;
@@ -107,6 +98,9 @@ namespace TK.Twitter.Crawl.Jobs
             _memoryCache = memoryCache;
             _distributedEventBus = distributedEventBus;
         }
+
+        #region Jobs
+
 
         [UnitOfWork(IsDisabled = true)]
         public override async Task ExecuteAsync(TwitterTweetCrawlJobArg args)
@@ -391,7 +385,26 @@ namespace TK.Twitter.Crawl.Jobs
             }
         }
 
-        public async Task AddTweet(string userId, string tweetId, string jsonContent, string kolTags, string batchKey)
+        private bool IsTaskInProgress(string cacheKey)
+        {
+            return _memoryCache.TryGetValue(cacheKey, out bool isTaskInProgress) && isTaskInProgress;
+        }
+
+        private void SetTaskInProgress(string cacheKey)
+        {
+            _memoryCache.Set(cacheKey, true);
+        }
+
+        private void ClearTaskInProgress(string cacheKey)
+        {
+            _memoryCache.Remove(cacheKey);
+        }
+
+        #endregion
+
+        #region Add Tweet
+
+        public async Task AddTweet(string mediaMentionedUserId, string tweetId, string jsonContent, string mediaMentionedTags, string batchKey)
         {
             var entry = JObject.Parse(jsonContent);
             var content = entry["content"];
@@ -405,7 +418,7 @@ namespace TK.Twitter.Crawl.Jobs
 
             var tweet = new TwitterTweetEntity()
             {
-                UserId = userId,
+                UserId = mediaMentionedUserId,
                 TweetId = tweetId
             };
 
@@ -598,98 +611,20 @@ namespace TK.Twitter.Crawl.Jobs
                 {
                     await _twitterTweetUserMentionRepository.InsertManyAsync(mentions);
 
-                    foreach (var item in mentions)
+                    await ProcessSignalWithUserMention(new()
                     {
-                        if (item.UserId == tweet.UserId) // bỏ qua mention chính nó
-                        {
-                            continue;
-                        }
-
-                        if (item.UserId == "-1") // bỏ qua các mention đến user suspended
-                        {
-                            continue;
-                        }
-
-                        if (IGNORE_USER_SCREENNAME_MENTIONS.Any(x => item.NormalizeScreenName.Contains(x)))// bỏ qua các mention đến user lớn để bú fame
-                        {
-                            continue;
-                        }
-
-                        // loại bỏ thằng này vì tự tag mình vào các bài listing cmc/cgk
-                        if (item.UserId == CrawlConsts.TwitterUser.BOT_OWNER_NEW_LISTING_CMC_CGK_USER_ID)
-                        {
-                            continue;
-                        }
-
-                        var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
-                        if (signals.IsNotEmpty())
-                        {
-                            foreach (var signal in signals)
-                            {
-                                await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
-                                {
-                                    UserId = item.UserId,
-                                    TweetId = tweet.TweetId,
-                                    Signal = signal,
-                                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
-                                });
-                            }
-
-                            await _leadWaitingProcessEntityRepository.InsertAsync(new LeadWaitingProcessEntity()
-                            {
-                                BatchKey = batchKey,
-                                UserId = item.UserId,
-                                TweetId = tweet.TweetId,
-                                Source = CrawlConsts.Signal.Source.TWITTER_TWEET
-                            });
-
-                            if (LeadProcessWaitingJob.IsLeadBySignalCode(signals))
-                            {
-                                var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-                                if (userType == null)
-                                {
-                                    await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
-                                    {
-                                        UserId = item.UserId,
-                                        Type = CrawlConsts.LeadType.LEADS,
-                                        IsUserSuppliedValue = false,
-                                    }, autoSave: true);
-                                }
-                                else
-                                {
-                                    if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
-                                    {
-                                        userType.Type = CrawlConsts.LeadType.LEADS;
-                                        await _twitterUserTypeRepository.UpdateAsync(userType);
-                                    }
-                                }
-                            }
-
-                            var userStatus = await _twitterUserStatusRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-                            if (userStatus == null)
-                            {
-                                await _twitterUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
-                                {
-                                    UserId = item.UserId,
-                                    Status = "New",
-                                    IsUserSuppliedValue = false,
-                                }, autoSave: true);
-                            }
-                            else
-                            {
-                                if (!userStatus.IsUserSuppliedValue && userStatus.Status != "New")
-                                {
-                                    userStatus.Status = "New";
-                                    await _twitterUserStatusRepository.UpdateAsync(userStatus);
-                                }
-                            }
-                        }
-                    }
+                        BatchKey = batchKey,
+                        MediaMentionedTags = mediaMentionedTags,
+                        MediaMentionedUserId = mediaMentionedUserId,
+                        Mentions = mentions,
+                        Tweet = tweet,
+                        Tags = tags
+                    });
                 }
                 else
                 {
-                    // no mention
-                    var signals = GetSignals(userId, tweet.NormalizeFullText, kolTags, tags.Select(x => x.NormalizeText));
+                    // Check No mention
+                    var signals = GetSignals(mediaMentionedUserId, tweet.NormalizeFullText, mediaMentionedTags, tags.Select(x => x.NormalizeText));
                     if (signals.IsNotEmpty())
                     {
                         await _airTableNoMentionWaitingProcessRepository.InsertAsync(new AirTableNoMentionWaitingProcessEntity()
@@ -703,219 +638,7 @@ namespace TK.Twitter.Crawl.Jobs
             }
         }
 
-        public static IEnumerable<string> GetSignals(string kolUserId, string tweetDescription, string kolTags, IEnumerable<string> hashTags)
-        {
-            tweetDescription ??= string.Empty;
-
-            List<string> signals = new();
-            if (kolTags.IsNotEmpty())
-            {
-                if (kolTags.Contains("cex"))
-                {
-                    bool check;
-                    switch (kolUserId)
-                    {
-                        case "978566222282444800": // MEXC_Official
-                            check = tweetDescription.Contains("deposit") && tweetDescription.Contains("trading");
-                            break;
-                        case "912539725071777792": // gate_io
-                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("trading");
-                            break;
-                        case "1098881129057112064": // bitgetglobal
-                        case "999947328621395968": // Bybit_Official
-                        case "937166242208763904": // BitMartExchange
-                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("deposit");
-                            break;
-                        case "910110294625492992": // kucoincom
-                            check = tweetDescription.Contains("listing") && tweetDescription.Contains("new");
-                            break;
-                        case "957221394009354245": // bitforexcom
-                            check = hashTags.Contains("newlistings");
-                            break;
-                        default:
-                            check = false;
-                            break;
-                    }
-
-                    if (check)
-                    {
-                        signals.Add(CrawlConsts.Signal.LISTING_CEX);
-                    }
-                }
-
-                if (kolTags.Contains("audit"))
-                {
-                    bool check;
-                    switch (kolUserId)
-                    {
-                        case "993673575230996480": // certik
-                        case "1571404564540047361": // securewiseAudit
-                        case "1390840374": // TechRightio
-                            check = tweetDescription.Contains("complete") && tweetDescription.Contains("audit");
-                            break;
-                        case "1478527011140214784": // contractwolf_io
-                            check = tweetDescription.Contains("audit") && tweetDescription.Contains("report");
-                            break;
-                        case "1370160171822018560": // AssureDefi
-                            check = tweetDescription.Contains("assured");
-                            break;
-                        case "1496534305891311622": // CoinsultAudits
-                        case "1461394993537589248": // VB_Audit
-                        case "1398253738905714690": // SolidProof_io
-                            check = tweetDescription.Contains("audit") && tweetDescription.Contains("complete");
-                            break;
-                        case "898528774303735808": // hackenclub
-                            check = tweetDescription.Contains("audit") && (tweetDescription.Contains("complete") || tweetDescription.Contains("successfully"));
-                            break;
-                        default:
-                            check = false;
-                            break;
-                    }
-
-                    if (check)
-                    {
-                        signals.Add(CrawlConsts.Signal.JUST_AUDITED);
-                    }
-                }
-
-                if (kolTags.Contains("upcoming_token_sale"))
-                {
-                    bool check;
-                    switch (kolUserId)
-                    {
-                        case "1402594955047043074": // Spores_Network
-                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("launching")) || (hashTags.Contains("ido") && hashTags.Contains("launching"));
-                            break;
-                        case "1171766610031341568": // Kingdomstarter
-                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("commit")) || (hashTags.Contains("ido") && hashTags.Contains("commit"));
-                            break;
-                        case "1384903770392387586": // bullperks
-                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("upcoming")) || (hashTags.Contains("ido") && hashTags.Contains("upcoming"));
-                            break;
-                        case "1277204360662077440": // trustswap
-                            check = tweetDescription.Contains("new") && tweetDescription.Contains("launchpad") || (hashTags.Contains("new") && hashTags.Contains("launchpad"));
-
-                            if (!check)
-                            {
-                                check = (tweetDescription.Contains("next") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("next") && hashTags.Contains("launchpad"));
-                            }
-
-                            if (!check)
-                            {
-                                check = (tweetDescription.Contains("upcoming") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("upcoming") && hashTags.Contains("launchpad"));
-                            }
-
-                            if (!check)
-                            {
-                                check = (tweetDescription.Contains("incoming") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("incoming") && hashTags.Contains("launchpad"));
-                            }
-
-                            if (!check)
-                            {
-                                check = (tweetDescription.Contains("introducing") && tweetDescription.Contains("launchpad")) || (hashTags.Contains("introducing") && hashTags.Contains("launchpad"));
-                            }
-                            break;
-                        case "1514973302280048647": // Gateio_Startup
-                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
-                            break;
-                        case "957221394009354245": // bitforexcom
-                            check = (tweetDescription.Contains("ieo")) || (hashTags.Contains("ieo"));
-                            break;
-                        case "937166242208763904": // BitMartExchange
-                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
-                            break;
-                        case "1389870631735414787": // kommunitas1
-                            check = (tweetDescription.Contains("iko")) || (hashTags.Contains("iko"));
-                            break;
-                        case "999947328621395968": // Bybit_Official
-                            check = ((tweetDescription.Contains("new") && tweetDescription.Contains("launchpad")) && tweetDescription.Contains("project")) || (hashTags.Contains("launchpad") && hashTags.Contains("project") && hashTags.Contains("project"));
-                            break;
-                        case "1385154488449658880": // pinkecosystem
-                            check = (tweetDescription.Contains("launchpad")) || (hashTags.Contains("launchpad"));
-                            break;
-                        case "1300122153317212161": // Poolz__
-                            check = (tweetDescription.Contains("ido") && tweetDescription.Contains("launching")) || (hashTags.Contains("ido") && hashTags.Contains("launching"));
-                            break;
-                        case "1460254342070550530": // thegempad
-                            check = (tweetDescription.Contains("announcement") && tweetDescription.Contains("launch")) || (hashTags.Contains("announcement") && hashTags.Contains("launch"));
-                            break;
-                        case "1415522287126671363": // GameFi_Official
-                            check = tweetDescription.Contains("whitelist") || (hashTags.Contains("whitelist"));
-                            break;
-                        case "1368509175769092096": // BSClaunchorg
-                            check = (tweetDescription.Contains("upcoming") && tweetDescription.Contains("ido")) || (hashTags.Contains("upcoming") && hashTags.Contains("ido"));
-                            if (!check)
-                            {
-                                check = (tweetDescription.Contains("launch") && tweetDescription.Contains("ido")) || (hashTags.Contains("launch") && hashTags.Contains("ido"));
-                            }
-                            break;
-                        case "1421126750214385672": // finblox
-                            check = (tweetDescription.Contains("finlaunch") && tweetDescription.Contains("date")) || (hashTags.Contains("finlaunch") && hashTags.Contains("date"));
-                            break;
-                        case "1345102860732788740": // SeedifyFund                            
-                            check = tweetDescription.Contains("launch") && tweetDescription.Contains("ido") || (hashTags.Contains("launch") && hashTags.Contains("ido"));
-                            if (!check)
-                            {
-                                check = tweetDescription.Contains("coming") && tweetDescription.Contains("ido") || (hashTags.Contains("coming") && hashTags.Contains("ido"));
-                            }
-                            if (!check)
-                            {
-                                check = tweetDescription.Contains("upcoming") && tweetDescription.Contains("ido") || (hashTags.Contains("upcoming") && hashTags.Contains("ido"));
-                            }
-                            break;
-                        default:
-                            check = false;
-                            break;
-                    }
-
-                    if (check)
-                    {
-                        signals.Add(CrawlConsts.Signal.UPCOMMING_TOKEN_SALE);
-                    }
-                }
-
-                if (kolTags.Contains("cmc_cg_new_listing"))
-                {
-                    if (kolUserId == "1688991175867502593")
-                    {
-                        if (hashTags.Contains("Coingecko") || hashTags.Contains("coingecko"))
-                        {
-                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO);
-                        }
-
-                        if (hashTags.Contains("Coinmarketcap") || hashTags.Contains("coinmarketcap"))
-                        {
-                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP);
-                        }
-                    }
-                }
-            }
-            else // media tag
-            {
-                if (
-                    (hashTags.Contains("ama") && !tweetDescription.Contains("winner"))
-                    || hashTags.Contains("sponsor")
-                    || hashTags.Contains("sponsored")
-                    || hashTags.Contains("ad")
-                    || hashTags.Contains("ads")
-                    )
-                {
-                    signals.Add(CrawlConsts.Signal.SPONSORED_TWEETS);
-                }
-                else if (hashTags.Contains("giveaways")
-                        || hashTags.Contains("airdrops")
-                        || hashTags.Contains("giveaway")
-                        || hashTags.Contains("airdrop")
-                        || hashTags.Contains("gleam"))
-                {
-                    signals.Add(CrawlConsts.Signal.HOSTING_GIVEAWAYS);
-                }
-            }
-
-            return signals.Distinct();
-        }
-
-        public DateTime? GetTweetCreatedAt(JToken entry)
+        private static DateTime? GetTweetCreatedAt(JToken entry)
         {
             var content = entry["content"];
             var itemContent = content["itemContent"];
@@ -942,19 +665,391 @@ namespace TK.Twitter.Crawl.Jobs
             return null;
         }
 
-        private bool IsTaskInProgress(string cacheKey)
+        #endregion
+
+
+        #region Process Signals
+
+        private class ProcessSignalWithUserMentionContext
         {
-            return _memoryCache.TryGetValue(cacheKey, out bool isTaskInProgress) && isTaskInProgress;
+            public TwitterTweetEntity Tweet { get; set; }
+
+            public List<TwitterTweetUserMentionEntity> Mentions { get; set; }
+
+            public List<TwitterTweetHashTagEntity> Tags { get; set; }
+
+            public string MediaMentionedUserId { get; set; }
+
+            public string MediaMentionedTags { get; set; }
+
+            public string BatchKey { get; set; }
         }
 
-        private void SetTaskInProgress(string cacheKey)
+        private async Task ProcessSignalWithUserMention(ProcessSignalWithUserMentionContext context)
         {
-            _memoryCache.Set(cacheKey, true);
+            var mentions = context.Mentions;
+
+            if (context.MediaMentionedTags.Contains("just_raised_funds"))
+            {
+                if (context.MediaMentionedUserId == "1635678642499100672") // screen_name: CryptoRank_VCs      name: Fundraising Digest
+                {
+                    if (context.Tweet.FullText.StartsWith("⚡️"))
+                    {
+                        // project sẽ được mention đầu tiên và các mention sau sẽ là các ventures nên chỉ cần quan tâm đến mention đầu tiên
+                        mentions = new List<TwitterTweetUserMentionEntity> { mentions[0] };
+                    }
+                    else
+                    {
+                        // Các tweet khác không phải template này thì k cần check gì thêm
+                        return;
+                    }
+                }
+                else if (context.MediaMentionedUserId == "1222812013002444800") // screen_name: Crypto_Dealflow      name: Crypto Fundraising
+                {
+                    // project sẽ được mention đầu tiên và các mention sau sẽ là các ventures nên chỉ cần quan tâm đến mention đầu tiên
+                    mentions = new List<TwitterTweetUserMentionEntity> { mentions[0] };
+                }
+            }
+
+            foreach (var item in mentions)
+            {
+                if (item.UserId == context.Tweet.UserId) // bỏ qua mention chính nó
+                {
+                    continue;
+                }
+
+                if (item.UserId == "-1") // bỏ qua các mention đến user suspended
+                {
+                    continue;
+                }
+
+                if (item.NormalizeScreenName.In([
+                    "binance",
+                    "coinbase",
+                    "bnbchain",
+                    "epicgames",
+                    "bitfinex",
+                    "bitmartexchange",
+                ])) // bỏ qua các mention đến user lớn để bú fame
+                {
+                    continue;
+                }
+
+                // loại bỏ thằng này vì tự tag mình vào các bài listing cmc/cgk
+                if (item.UserId == CrawlConsts.TwitterUser.BOT_OWNER_NEW_LISTING_CMC_CGK_USER_ID)
+                {
+                    continue;
+                }
+
+                var signals = GetSignals(context.MediaMentionedUserId, context.Tweet.NormalizeFullText, context.MediaMentionedTags, context.Tags.Select(x => x.NormalizeText));
+                if (signals.IsNotEmpty())
+                {
+                    bool shouldAddWaitingProcess = false;
+
+                    // Thêm signal cho lead
+                    foreach (var signal in signals)
+                    {
+                        bool shouldAddSignal = false;
+                        if (signal == CrawlConsts.Signal.JUST_RAISED_FUNDS)
+                        {
+                            // Trong trường hợp này đang crawl từ 2 nguồn và có thể bị trùng nhau. Nếu Project đã có signal này thì bỏ qua k cần add thêm
+                            shouldAddSignal = !await _twitterUserSignalRepository.AnyAsync(x => x.UserId == item.UserId && x.Signal == CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                        }
+
+                        if (shouldAddSignal)
+                        {
+                            shouldAddWaitingProcess = true;
+                            await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
+                            {
+                                UserId = item.UserId,
+                                TweetId = context.Tweet.TweetId,
+                                Signal = signal,
+                                Source = CrawlConsts.Signal.Source.TWITTER_TWEET
+                            });
+                        }
+                    }
+
+                    if (shouldAddWaitingProcess)
+                    {
+                        // Đưa vào waiting process
+                        await _leadWaitingProcessEntityRepository.InsertAsync(new LeadWaitingProcessEntity()
+                        {
+                            BatchKey = context.BatchKey,
+                            UserId = item.UserId,
+                            TweetId = context.Tweet.TweetId,
+                            Source = CrawlConsts.Signal.Source.TWITTER_TWEET
+                        });
+
+                        // Nếu Signal thỏa mã điều kiện thì đưa Lead thành Type Lead luôn
+                        if (LeadProcessWaitingJob.IsLeadBySignalCode(signals))
+                        {
+                            var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+                            if (userType == null)
+                            {
+                                await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
+                                {
+                                    UserId = item.UserId,
+                                    Type = CrawlConsts.LeadType.LEADS,
+                                    IsUserSuppliedValue = false,
+                                }, autoSave: true);
+                            }
+                            else
+                            {
+                                if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
+                                {
+                                    userType.Type = CrawlConsts.LeadType.LEADS;
+                                    await _twitterUserTypeRepository.UpdateAsync(userType);
+                                }
+                            }
+                        }
+
+                        var userStatus = await _twitterUserStatusRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
+                        if (userStatus == null)
+                        {
+                            await _twitterUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
+                            {
+                                UserId = item.UserId,
+                                Status = "New",
+                                IsUserSuppliedValue = false,
+                            }, autoSave: true);
+                        }
+                        else
+                        {
+                            if (!userStatus.IsUserSuppliedValue && userStatus.Status != "New")
+                            {
+                                userStatus.Status = "New";
+                                await _twitterUserStatusRepository.UpdateAsync(userStatus);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        private void ClearTaskInProgress(string cacheKey)
+        public static IEnumerable<string> GetSignals(string mediaMentionedUserId, string tweetFullText, string mediaMentionedTags, IEnumerable<string> tweetTags)
         {
-            _memoryCache.Remove(cacheKey);
+            tweetFullText ??= string.Empty;
+
+            List<string> signals = new();
+            if (mediaMentionedTags.IsNotEmpty())
+            {
+                if (mediaMentionedTags.Contains("cex"))
+                {
+                    bool check;
+                    switch (mediaMentionedUserId)
+                    {
+                        case "978566222282444800": // MEXC_Official
+                            check = tweetFullText.Contains("deposit") && tweetFullText.Contains("trading");
+                            break;
+                        case "912539725071777792": // gate_io
+                            check = tweetFullText.Contains("listing") && tweetFullText.Contains("trading");
+                            break;
+                        case "1098881129057112064": // bitgetglobal
+                        case "999947328621395968": // Bybit_Official
+                        case "937166242208763904": // BitMartExchange
+                            check = tweetFullText.Contains("listing") && tweetFullText.Contains("deposit");
+                            break;
+                        case "910110294625492992": // kucoincom
+                            check = tweetFullText.Contains("listing") && tweetFullText.Contains("new");
+                            break;
+                        case "957221394009354245": // bitforexcom
+                            check = tweetTags.Contains("newlistings");
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(CrawlConsts.Signal.LISTING_CEX);
+                    }
+                }
+
+                if (mediaMentionedTags.Contains("audit"))
+                {
+                    bool check;
+                    switch (mediaMentionedUserId)
+                    {
+                        case "993673575230996480": // certik
+                        case "1571404564540047361": // securewiseAudit
+                        case "1390840374": // TechRightio
+                            check = tweetFullText.Contains("complete") && tweetFullText.Contains("audit");
+                            break;
+                        case "1478527011140214784": // contractwolf_io
+                            check = tweetFullText.Contains("audit") && tweetFullText.Contains("report");
+                            break;
+                        case "1370160171822018560": // AssureDefi
+                            check = tweetFullText.Contains("assured");
+                            break;
+                        case "1496534305891311622": // CoinsultAudits
+                        case "1461394993537589248": // VB_Audit
+                        case "1398253738905714690": // SolidProof_io
+                            check = tweetFullText.Contains("audit") && tweetFullText.Contains("complete");
+                            break;
+                        case "898528774303735808": // hackenclub
+                            check = tweetFullText.Contains("audit") && (tweetFullText.Contains("complete") || tweetFullText.Contains("successfully"));
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(CrawlConsts.Signal.JUST_AUDITED);
+                    }
+                }
+
+                if (mediaMentionedTags.Contains("upcoming_token_sale"))
+                {
+                    bool check;
+                    switch (mediaMentionedUserId)
+                    {
+                        case "1402594955047043074": // Spores_Network
+                            check = (tweetFullText.Contains("ido") && tweetFullText.Contains("launching")) || (tweetTags.Contains("ido") && tweetTags.Contains("launching"));
+                            break;
+                        case "1171766610031341568": // Kingdomstarter
+                            check = (tweetFullText.Contains("ido") && tweetFullText.Contains("commit")) || (tweetTags.Contains("ido") && tweetTags.Contains("commit"));
+                            break;
+                        case "1384903770392387586": // bullperks
+                            check = (tweetFullText.Contains("ido") && tweetFullText.Contains("upcoming")) || (tweetTags.Contains("ido") && tweetTags.Contains("upcoming"));
+                            break;
+                        case "1277204360662077440": // trustswap
+                            check = tweetFullText.Contains("new") && tweetFullText.Contains("launchpad") || (tweetTags.Contains("new") && tweetTags.Contains("launchpad"));
+
+                            if (!check)
+                            {
+                                check = (tweetFullText.Contains("next") && tweetFullText.Contains("launchpad")) || (tweetTags.Contains("next") && tweetTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetFullText.Contains("upcoming") && tweetFullText.Contains("launchpad")) || (tweetTags.Contains("upcoming") && tweetTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetFullText.Contains("incoming") && tweetFullText.Contains("launchpad")) || (tweetTags.Contains("incoming") && tweetTags.Contains("launchpad"));
+                            }
+
+                            if (!check)
+                            {
+                                check = (tweetFullText.Contains("introducing") && tweetFullText.Contains("launchpad")) || (tweetTags.Contains("introducing") && tweetTags.Contains("launchpad"));
+                            }
+                            break;
+                        case "1514973302280048647": // Gateio_Startup
+                            check = (tweetFullText.Contains("launchpad")) || (tweetTags.Contains("launchpad"));
+                            break;
+                        case "957221394009354245": // bitforexcom
+                            check = (tweetFullText.Contains("ieo")) || (tweetTags.Contains("ieo"));
+                            break;
+                        case "937166242208763904": // BitMartExchange
+                            check = (tweetFullText.Contains("launchpad")) || (tweetTags.Contains("launchpad"));
+                            break;
+                        case "1389870631735414787": // kommunitas1
+                            check = (tweetFullText.Contains("iko")) || (tweetTags.Contains("iko"));
+                            break;
+                        case "999947328621395968": // Bybit_Official
+                            check = ((tweetFullText.Contains("new") && tweetFullText.Contains("launchpad")) && tweetFullText.Contains("project")) || (tweetTags.Contains("launchpad") && tweetTags.Contains("project") && tweetTags.Contains("project"));
+                            break;
+                        case "1385154488449658880": // pinkecosystem
+                            check = (tweetFullText.Contains("launchpad")) || (tweetTags.Contains("launchpad"));
+                            break;
+                        case "1300122153317212161": // Poolz__
+                            check = (tweetFullText.Contains("ido") && tweetFullText.Contains("launching")) || (tweetTags.Contains("ido") && tweetTags.Contains("launching"));
+                            break;
+                        case "1460254342070550530": // thegempad
+                            check = (tweetFullText.Contains("announcement") && tweetFullText.Contains("launch")) || (tweetTags.Contains("announcement") && tweetTags.Contains("launch"));
+                            break;
+                        case "1415522287126671363": // GameFi_Official
+                            check = tweetFullText.Contains("whitelist") || (tweetTags.Contains("whitelist"));
+                            break;
+                        case "1368509175769092096": // BSClaunchorg
+                            check = (tweetFullText.Contains("upcoming") && tweetFullText.Contains("ido")) || (tweetTags.Contains("upcoming") && tweetTags.Contains("ido"));
+                            if (!check)
+                            {
+                                check = (tweetFullText.Contains("launch") && tweetFullText.Contains("ido")) || (tweetTags.Contains("launch") && tweetTags.Contains("ido"));
+                            }
+                            break;
+                        case "1421126750214385672": // finblox
+                            check = (tweetFullText.Contains("finlaunch") && tweetFullText.Contains("date")) || (tweetTags.Contains("finlaunch") && tweetTags.Contains("date"));
+                            break;
+                        case "1345102860732788740": // SeedifyFund                            
+                            check = tweetFullText.Contains("launch") && tweetFullText.Contains("ido") || (tweetTags.Contains("launch") && tweetTags.Contains("ido"));
+                            if (!check)
+                            {
+                                check = tweetFullText.Contains("coming") && tweetFullText.Contains("ido") || (tweetTags.Contains("coming") && tweetTags.Contains("ido"));
+                            }
+                            if (!check)
+                            {
+                                check = tweetFullText.Contains("upcoming") && tweetFullText.Contains("ido") || (tweetTags.Contains("upcoming") && tweetTags.Contains("ido"));
+                            }
+                            break;
+                        default:
+                            check = false;
+                            break;
+                    }
+
+                    if (check)
+                    {
+                        signals.Add(CrawlConsts.Signal.UPCOMMING_TOKEN_SALE);
+                    }
+                }
+
+                if (mediaMentionedTags.Contains("cmc_cg_new_listing"))
+                {
+                    if (mediaMentionedUserId == "1688991175867502593")
+                    {
+                        if (tweetTags.Contains("Coingecko") || tweetTags.Contains("coingecko"))
+                        {
+                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINGECKO);
+                        }
+
+                        if (tweetTags.Contains("Coinmarketcap") || tweetTags.Contains("coinmarketcap"))
+                        {
+                            signals.Add(CrawlConsts.Signal.JUST_LISTED_IN_COINMARKETCAP);
+                        }
+                    }
+                }
+
+                if (mediaMentionedTags.Contains("just_raised_funds"))
+                {
+                    if (mediaMentionedUserId == "1635678642499100672") // screen_name: CryptoRank_VCs      name: Fundraising Digest
+                    {
+                        signals.Add(CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                    }
+                    else if (mediaMentionedUserId == "1222812013002444800") // screen_name: Crypto_Dealflow      name: Crypto Fundraising
+                    {
+                        signals.Add(CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                    }
+                }
+            }
+            else // media tag
+            {
+                if (
+                    (tweetTags.Contains("ama") && !tweetFullText.Contains("winner"))
+                    || tweetTags.Contains("sponsor")
+                    || tweetTags.Contains("sponsored")
+                    || tweetTags.Contains("ad")
+                    || tweetTags.Contains("ads")
+                    )
+                {
+                    signals.Add(CrawlConsts.Signal.SPONSORED_TWEETS);
+                }
+                else if (tweetTags.Contains("giveaways")
+                        || tweetTags.Contains("airdrops")
+                        || tweetTags.Contains("giveaway")
+                        || tweetTags.Contains("airdrop")
+                        || tweetTags.Contains("gleam"))
+                {
+                    signals.Add(CrawlConsts.Signal.HOSTING_GIVEAWAYS);
+                }
+            }
+
+            return signals.Distinct();
         }
+
+        #endregion
     }
 }

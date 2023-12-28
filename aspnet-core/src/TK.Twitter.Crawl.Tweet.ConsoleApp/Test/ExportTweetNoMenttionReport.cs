@@ -75,6 +75,11 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
         public async Task RunAsync()
         {
+            await RunAsync_AddNoMentionWaitingProcess();
+        }
+
+        public async Task RunAsync_AddNoMentionWaitingProcess()
+        {
             var dict = await GetDictAsync();
             foreach (var tweetId in dict.Keys)
             {
@@ -87,7 +92,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             }
         }
 
-        public async Task RunAsync_2()
+        public async Task RunAsync_GetReport()
         {
             var dict = await GetDictAsync();
 
@@ -128,15 +133,17 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
             }
         }
 
-        public async Task RunAsync_()
+        public async Task RunAsync_GetNoMentionTweet()
         {
-            var tweets = await _tweetRepository.GetListAsync();
-            var tweetTags = await _twitterTweetHashTagRepository.GetListAsync();
+            var milestone = new DateTime(2023, 12, 26);
+
+            var tweets = await _tweetRepository.GetListAsync(x => x.CreatedAt >= milestone);
+            var tweetTags = await _twitterTweetHashTagRepository.GetListAsync(x => x.CreationTime >= milestone);
             var influencers = await _twitterInfluencerRepository.GetListAsync();
 
             var dict = influencers.ToDictionary(x => x.UserId);
 
-            var noMentionTweets = new Dictionary<string, IEnumerable<string>>();
+            var done = await GetDictAsync();
 
             var run = async (int taskId, IEnumerable<TwitterTweetEntity> tweets) =>
             {
@@ -146,7 +153,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 foreach (var tweet in tweets)
                 {
                     Console.WriteLine($"Task {taskId}: {count} of {total}");
-                    if (!dict.ContainsKey(tweet.UserId))
+                    if (!dict.ContainsKey(tweet.UserId) || done.ContainsKey(tweet.TweetId))
                     {
                         continue;
                     }
@@ -163,45 +170,41 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 return await Task.FromResult(noMentionTweets);
             };
 
-            var task1 = Task.Run(() => run(0, tweets.Skip(27500 * 0).Take(27500)));
-            var task2 = Task.Run(() => run(1, tweets.Skip(27500 * 1).Take(27500)));
-            var task3 = Task.Run(() => run(2, tweets.Skip(27500 * 2).Take(27500)));
-            var task4 = Task.Run(() => run(3, tweets.Skip(27500 * 3).Take(27500)));
-            var task5 = Task.Run(() => run(4, tweets.Skip(27500 * 4).Take(27500)));
-            var task6 = Task.Run(() => run(5, tweets.Skip(27500 * 5).Take(27500)));
-            var task7 = Task.Run(() => run(6, tweets.Skip(27500 * 6).Take(27500)));
-            var task8 = Task.Run(() => run(7, tweets.Skip(27500 * 7).Take(27500)));
+            var calculationTake = tweets.Count / 8;
 
-            await Task.WhenAll(task1, task2, task3, task4, task5, task6, task7, task8);
-
-            var result = new Dictionary<string, IEnumerable<string>>();
-
-            void func(Task<Dictionary<string, IEnumerable<string>>> r)
+            var tasks = new List<Task<Dictionary<string, IEnumerable<string>>>>();
+            for (int i = 1; i <= 8; i++)
             {
-                foreach (var item in r.Result)
+                int taskId = i;
+                int skip = calculationTake * (i - 1);
+                int realTake = calculationTake;
+                if (i == 8)
                 {
-                    result.Add(item.Key, item.Value);
+                    realTake += 100000;
                 }
+                tasks.Add(Task.Run(() => run(taskId, tweets.Skip(skip).Take(realTake))));
             }
 
-            func(task1);
-            func(task2);
-            func(task3);
-            func(task4);
-            func(task5);
-            func(task6);
-            func(task7);
-            func(task8);
+            var whenAllCompleteResult = await Task.WhenAll(tasks);
+            var noMentionTweets = new Dictionary<string, IEnumerable<string>>();
+            foreach (var tresult in whenAllCompleteResult)
+            {
+                foreach (var item in tresult)
+                {
+                    noMentionTweets.Add(item.Key, item.Value);
+                }
+            }
         }
 
         public static async Task<Dictionary<string, IEnumerable<string>>> GetDictAsync()
         {
             try
             {
-                var json = File.ReadAllText("Data/TweetNoMention.json");
+                //var json = await File.ReadAllTextAsync("Data/TweetNoMention.json");
+                var json = await File.ReadAllTextAsync("Data/TweetNoMention_2023_12_28.json");
                 return JsonHelper.Parse<Dictionary<string, IEnumerable<string>>>(json);
             }
-            catch (Exception ex)
+            catch
             {
 
             }

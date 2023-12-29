@@ -55,6 +55,7 @@ public static class CrawlConsts
         public const string UPCOMMING_TOKEN_SALE = "UPCOMMING_TOKEN_SALE";
         public const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
         public const string BUYING_SPONSORED_POSTS = "BUYING_SPONSORED_POSTS";
+        public const string BUILDING_ON_BNB_CHAIN = "BUILDING_ON_BNB_CHAIN";
 
         public static string GetName(string signal)
         {
@@ -87,6 +88,9 @@ public static class CrawlConsts
                     break;
                 case JUST_RAISED_FUNDS:
                     name = "Just raised funds";
+                    break;
+                case BUILDING_ON_BNB_CHAIN:
+                    name = "Building on BNB chain";
                     break;
                 default:
                     name = null;
@@ -127,6 +131,9 @@ public static class CrawlConsts
                     break;
                 case "just listed in coinmarketcap":
                     code = JUST_LISTED_IN_COINMARKETCAP;
+                    break;
+                case "building on bnb chain":
+                    code = BUILDING_ON_BNB_CHAIN;
                     break;
                 default:
                     code = null;

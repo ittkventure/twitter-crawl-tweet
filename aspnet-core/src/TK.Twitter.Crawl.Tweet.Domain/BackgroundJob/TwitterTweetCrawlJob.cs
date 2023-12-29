@@ -711,6 +711,18 @@ namespace TK.Twitter.Crawl.Jobs
                 }
             }
 
+            if (context.MediaMentionedTags.Contains("building_on_bnb_chain"))
+            {
+                if (context.MediaMentionedUserId == "1052454006537314306") // screen_name: BNBCHAIN     name: BNB Chain
+                {
+                    if (!context.Tweet.FullText.ToLower().Contains("welcome"))
+                    {
+                        // Các tweet khác không phải template này thì k cần check gì thêm
+                        return;
+                    }
+                }
+            }
+
             foreach (var item in mentions)
             {
                 if (item.UserId == context.Tweet.UserId) // bỏ qua mention chính nó
@@ -1017,11 +1029,25 @@ namespace TK.Twitter.Crawl.Jobs
                 {
                     if (mediaMentionedUserId == "1635678642499100672") // screen_name: CryptoRank_VCs      name: Fundraising Digest
                     {
-                        signals.Add(CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                        if (tweetFullText.StartsWith("⚡️"))
+                        {
+                            signals.Add(CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                        }
                     }
                     else if (mediaMentionedUserId == "1222812013002444800") // screen_name: Crypto_Dealflow      name: Crypto Fundraising
                     {
                         signals.Add(CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                    }
+                }
+
+                if (mediaMentionedTags.Contains("building_on_bnb_chain"))
+                {
+                    if (mediaMentionedUserId == "1052454006537314306") // screen_name: BNBCHAIN     name: BNB Chain
+                    {
+                        if (tweetFullText.ToLower().Contains("welcome"))
+                        {
+                            signals.Add(CrawlConsts.Signal.BUILDING_ON_BNB_CHAIN);
+                        }
                     }
                 }
             }

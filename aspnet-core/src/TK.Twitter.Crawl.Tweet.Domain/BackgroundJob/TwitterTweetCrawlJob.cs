@@ -723,14 +723,14 @@ namespace TK.Twitter.Crawl.Jobs
                     continue;
                 }
 
-                if (item.NormalizeScreenName.In([
+                if (item.NormalizeScreenName.In(
                     "binance",
                     "coinbase",
                     "bnbchain",
                     "epicgames",
                     "bitfinex",
-                    "bitmartexchange",
-                ])) // bỏ qua các mention đến user lớn để bú fame
+                    "bitmartexchange"
+                )) // bỏ qua các mention đến user lớn để bú fame
                 {
                     continue;
                 }

@@ -24,8 +24,13 @@ namespace System
         {
             return !IsEmpty(source);
         }
-       
+
         public static bool In<T>(this T source, IEnumerable<T> enumerable)
+        {
+            return enumerable.Contains(source);
+        }
+
+        public static bool In(this string source, params string[] enumerable)
         {
             return enumerable.Contains(source);
         }

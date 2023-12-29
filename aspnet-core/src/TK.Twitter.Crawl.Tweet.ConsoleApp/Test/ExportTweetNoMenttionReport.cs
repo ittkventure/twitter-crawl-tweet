@@ -135,15 +135,21 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
 
         public async Task RunAsync_GetNoMentionTweet()
         {
-            var milestone = new DateTime(2023, 12, 26);
+            var milestone = new DateTime(2022, 12, 26);
+            var mentionQuery = await _twitterTweetUserMentionRepository.GetQueryableAsync();
 
-            var tweets = await _tweetRepository.GetListAsync(x => x.CreatedAt >= milestone);
+            var tweetQuery = from tweet in await _tweetRepository.GetQueryableAsync()
+                             where !mentionQuery.Any(x => x.TweetId == tweet.TweetId)
+                             where tweet.CreatedAt >= milestone
+                             select tweet;
+
+            var tweets = await _tweetRepository.AsyncExecuter.ToListAsync(tweetQuery);
             var tweetTags = await _twitterTweetHashTagRepository.GetListAsync(x => x.CreationTime >= milestone);
             var influencers = await _twitterInfluencerRepository.GetListAsync();
 
             var dict = influencers.ToDictionary(x => x.UserId);
 
-            var done = await GetDictAsync();
+            //var done = await GetDictAsync();
 
             var run = async (int taskId, IEnumerable<TwitterTweetEntity> tweets) =>
             {
@@ -153,7 +159,9 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 foreach (var tweet in tweets)
                 {
                     Console.WriteLine($"Task {taskId}: {count} of {total}");
-                    if (!dict.ContainsKey(tweet.UserId) || done.ContainsKey(tweet.TweetId))
+                    if (!dict.ContainsKey(tweet.UserId)
+                    //|| done.ContainsKey(tweet.TweetId)
+                    )
                     {
                         continue;
                     }
@@ -200,8 +208,7 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
         {
             try
             {
-                //var json = await File.ReadAllTextAsync("Data/TweetNoMention.json");
-                var json = await File.ReadAllTextAsync("Data/TweetNoMention_2023_12_28.json");
+                var json = await File.ReadAllTextAsync("Data/TweetNoMention.json");
                 return JsonHelper.Parse<Dictionary<string, IEnumerable<string>>>(json);
             }
             catch

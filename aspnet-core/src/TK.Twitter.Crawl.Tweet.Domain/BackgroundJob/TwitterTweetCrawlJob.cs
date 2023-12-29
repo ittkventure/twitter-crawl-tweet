@@ -670,7 +670,7 @@ namespace TK.Twitter.Crawl.Jobs
 
         #region Process Signals
 
-        private class ProcessSignalWithUserMentionContext
+        public class ProcessSignalWithUserMentionContext
         {
             public TwitterTweetEntity Tweet { get; set; }
 
@@ -685,7 +685,7 @@ namespace TK.Twitter.Crawl.Jobs
             public string BatchKey { get; set; }
         }
 
-        private async Task ProcessSignalWithUserMention(ProcessSignalWithUserMentionContext context)
+        public async Task ProcessSignalWithUserMention(ProcessSignalWithUserMentionContext context)
         {
             var mentions = context.Mentions;
 

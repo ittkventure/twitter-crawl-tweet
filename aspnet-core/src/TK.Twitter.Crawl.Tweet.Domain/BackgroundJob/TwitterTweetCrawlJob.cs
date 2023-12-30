@@ -689,36 +689,39 @@ namespace TK.Twitter.Crawl.Jobs
         {
             var mentions = context.Mentions;
 
-            if (context.MediaMentionedTags.Contains("just_raised_funds"))
+            if (context.MediaMentionedTags.IsNotEmpty())
             {
-                if (context.MediaMentionedUserId == "1635678642499100672") // screen_name: CryptoRank_VCs      name: Fundraising Digest
+                if (context.MediaMentionedTags.Contains("just_raised_funds"))
                 {
-                    if (context.Tweet.FullText.StartsWith("⚡️"))
+                    if (context.MediaMentionedUserId == "1635678642499100672") // screen_name: CryptoRank_VCs      name: Fundraising Digest
+                    {
+                        if (context.Tweet.FullText.StartsWith("⚡️"))
+                        {
+                            // project sẽ được mention đầu tiên và các mention sau sẽ là các ventures nên chỉ cần quan tâm đến mention đầu tiên
+                            mentions = new List<TwitterTweetUserMentionEntity> { mentions[0] };
+                        }
+                        else
+                        {
+                            // Các tweet khác không phải template này thì k cần check gì thêm
+                            return;
+                        }
+                    }
+                    else if (context.MediaMentionedUserId == "1222812013002444800") // screen_name: Crypto_Dealflow      name: Crypto Fundraising
                     {
                         // project sẽ được mention đầu tiên và các mention sau sẽ là các ventures nên chỉ cần quan tâm đến mention đầu tiên
                         mentions = new List<TwitterTweetUserMentionEntity> { mentions[0] };
                     }
-                    else
-                    {
-                        // Các tweet khác không phải template này thì k cần check gì thêm
-                        return;
-                    }
                 }
-                else if (context.MediaMentionedUserId == "1222812013002444800") // screen_name: Crypto_Dealflow      name: Crypto Fundraising
-                {
-                    // project sẽ được mention đầu tiên và các mention sau sẽ là các ventures nên chỉ cần quan tâm đến mention đầu tiên
-                    mentions = new List<TwitterTweetUserMentionEntity> { mentions[0] };
-                }
-            }
 
-            if (context.MediaMentionedTags.Contains("building_on_bnb_chain"))
-            {
-                if (context.MediaMentionedUserId == "1052454006537314306") // screen_name: BNBCHAIN     name: BNB Chain
+                if (context.MediaMentionedTags.Contains("building_on_bnb_chain"))
                 {
-                    if (!context.Tweet.FullText.ToLower().Contains("welcome"))
+                    if (context.MediaMentionedUserId == "1052454006537314306") // screen_name: BNBCHAIN     name: BNB Chain
                     {
-                        // Các tweet khác không phải template này thì k cần check gì thêm
-                        return;
+                        if (!context.Tweet.FullText.ToLower().Contains("welcome"))
+                        {
+                            // Các tweet khác không phải template này thì k cần check gì thêm
+                            return;
+                        }
                     }
                 }
             }

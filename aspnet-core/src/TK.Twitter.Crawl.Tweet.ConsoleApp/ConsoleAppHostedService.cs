@@ -44,7 +44,8 @@ public class ConsoleAppHostedService : IHostedService
             await application.ServiceProvider
                              //.GetRequiredService<TestCoinGecko>().Test();              
                              //.GetRequiredService<TestTweetSignal>().RunAsync();              
-                             .GetRequiredService<ExportTweetNoMenttionReport>().RunAsync();              
+                             //.GetRequiredService<ExportTweetNoMenttionReport>().RunAsync();              
+                             .GetRequiredService<TweetReRunProcessSignal>().RunAsync();              
                              //.GetRequiredService<TestAirTable>().Test();              
                              //.GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
                              //.GetRequiredService<TestUserPlan>().RunAsync();

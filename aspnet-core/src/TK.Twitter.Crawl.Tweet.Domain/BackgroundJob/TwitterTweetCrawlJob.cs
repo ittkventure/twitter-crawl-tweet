@@ -764,7 +764,7 @@ namespace TK.Twitter.Crawl.Jobs
                     // Thêm signal cho lead
                     foreach (var signal in signals)
                     {
-                        bool shouldAddSignal = false;
+                        bool shouldAddSignal = true;
                         if (signal == CrawlConsts.Signal.JUST_RAISED_FUNDS)
                         {
                             // Trong trường hợp này đang crawl từ 2 nguồn và có thể bị trùng nhau. Nếu Project đã có signal này thì bỏ qua k cần add thêm

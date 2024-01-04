@@ -5,6 +5,7 @@ using Polly;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Notification;
@@ -756,86 +757,98 @@ namespace TK.Twitter.Crawl.Jobs
                     continue;
                 }
 
-                var signals = GetSignals(context.MediaMentionedUserId, context.Tweet.NormalizeFullText, context.MediaMentionedTags, context.Tags.Select(x => x.NormalizeText));
-                if (signals.IsNotEmpty())
+                var signals = GetSignals(
+                    context.MediaMentionedUserId, 
+                    context.Tweet.NormalizeFullText, 
+                    context.MediaMentionedTags, 
+                    context.Tags.Select(x => x.NormalizeText));
+
+                await ProcessSignals(signals, item.UserId, item.TweetId, context.BatchKey);
+            }
+        }
+
+        public async Task ProcessSignals(IEnumerable<string> signals, string mentionedUserId, string tweetId, string batchKey)
+        {
+            if (signals.IsEmpty())
+            {
+                return;
+            }
+
+            bool shouldAddWaitingProcess = false;
+
+            // Thêm signal cho lead
+            foreach (var signal in signals)
+            {
+                bool shouldAddSignal = true;
+                if (signal == CrawlConsts.Signal.JUST_RAISED_FUNDS)
                 {
-                    bool shouldAddWaitingProcess = false;
+                    // Trong trường hợp này đang crawl từ 2 nguồn và có thể bị trùng nhau. Nếu Project đã có signal này thì bỏ qua k cần add thêm
+                    shouldAddSignal = !await _twitterUserSignalRepository.AnyAsync(x => x.UserId == mentionedUserId && x.Signal == CrawlConsts.Signal.JUST_RAISED_FUNDS);
+                }
 
-                    // Thêm signal cho lead
-                    foreach (var signal in signals)
+                if (shouldAddSignal)
+                {
+                    shouldAddWaitingProcess = true;
+                    await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
                     {
-                        bool shouldAddSignal = true;
-                        if (signal == CrawlConsts.Signal.JUST_RAISED_FUNDS)
-                        {
-                            // Trong trường hợp này đang crawl từ 2 nguồn và có thể bị trùng nhau. Nếu Project đã có signal này thì bỏ qua k cần add thêm
-                            shouldAddSignal = !await _twitterUserSignalRepository.AnyAsync(x => x.UserId == item.UserId && x.Signal == CrawlConsts.Signal.JUST_RAISED_FUNDS);
-                        }
+                        UserId = mentionedUserId,
+                        TweetId = tweetId,
+                        Signal = signal,
+                        Source = CrawlConsts.Signal.Source.TWITTER_TWEET
+                    });
+                }
+            }
 
-                        if (shouldAddSignal)
+            if (shouldAddWaitingProcess)
+            {
+                // Đưa vào waiting process
+                await _leadWaitingProcessEntityRepository.InsertAsync(new LeadWaitingProcessEntity()
+                {
+                    BatchKey = batchKey,
+                    UserId = mentionedUserId,
+                    TweetId = tweetId,
+                    Source = CrawlConsts.Signal.Source.TWITTER_TWEET
+                });
+
+                // Nếu Signal thỏa mã điều kiện thì đưa Lead thành Type Lead luôn
+                if (LeadProcessWaitingJob.IsLeadBySignalCode(signals))
+                {
+                    var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == mentionedUserId);
+                    if (userType == null)
+                    {
+                        await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
                         {
-                            shouldAddWaitingProcess = true;
-                            await _twitterUserSignalRepository.InsertAsync(new TwitterUserSignalEntity()
-                            {
-                                UserId = item.UserId,
-                                TweetId = context.Tweet.TweetId,
-                                Signal = signal,
-                                Source = CrawlConsts.Signal.Source.TWITTER_TWEET
-                            });
+                            UserId = mentionedUserId,
+                            Type = CrawlConsts.LeadType.LEADS,
+                            IsUserSuppliedValue = false,
+                        }, autoSave: true);
+                    }
+                    else
+                    {
+                        if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
+                        {
+                            userType.Type = CrawlConsts.LeadType.LEADS;
+                            await _twitterUserTypeRepository.UpdateAsync(userType);
                         }
                     }
+                }
 
-                    if (shouldAddWaitingProcess)
+                var userStatus = await _twitterUserStatusRepository.FirstOrDefaultAsync(x => x.UserId == mentionedUserId);
+                if (userStatus == null)
+                {
+                    await _twitterUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
                     {
-                        // Đưa vào waiting process
-                        await _leadWaitingProcessEntityRepository.InsertAsync(new LeadWaitingProcessEntity()
-                        {
-                            BatchKey = context.BatchKey,
-                            UserId = item.UserId,
-                            TweetId = context.Tweet.TweetId,
-                            Source = CrawlConsts.Signal.Source.TWITTER_TWEET
-                        });
-
-                        // Nếu Signal thỏa mã điều kiện thì đưa Lead thành Type Lead luôn
-                        if (LeadProcessWaitingJob.IsLeadBySignalCode(signals))
-                        {
-                            var userType = await _twitterUserTypeRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-                            if (userType == null)
-                            {
-                                await _twitterUserTypeRepository.InsertAsync(new TwitterUserTypeEntity()
-                                {
-                                    UserId = item.UserId,
-                                    Type = CrawlConsts.LeadType.LEADS,
-                                    IsUserSuppliedValue = false,
-                                }, autoSave: true);
-                            }
-                            else
-                            {
-                                if (!userType.IsUserSuppliedValue && userType.Type != CrawlConsts.LeadType.LEADS)
-                                {
-                                    userType.Type = CrawlConsts.LeadType.LEADS;
-                                    await _twitterUserTypeRepository.UpdateAsync(userType);
-                                }
-                            }
-                        }
-
-                        var userStatus = await _twitterUserStatusRepository.FirstOrDefaultAsync(x => x.UserId == item.UserId);
-                        if (userStatus == null)
-                        {
-                            await _twitterUserStatusRepository.InsertAsync(new TwitterUserStatusEntity()
-                            {
-                                UserId = item.UserId,
-                                Status = "New",
-                                IsUserSuppliedValue = false,
-                            }, autoSave: true);
-                        }
-                        else
-                        {
-                            if (!userStatus.IsUserSuppliedValue && userStatus.Status != "New")
-                            {
-                                userStatus.Status = "New";
-                                await _twitterUserStatusRepository.UpdateAsync(userStatus);
-                            }
-                        }
+                        UserId = mentionedUserId,
+                        Status = "New",
+                        IsUserSuppliedValue = false,
+                    }, autoSave: true);
+                }
+                else
+                {
+                    if (!userStatus.IsUserSuppliedValue && userStatus.Status != "New")
+                    {
+                        userStatus.Status = "New";
+                        await _twitterUserStatusRepository.UpdateAsync(userStatus);
                     }
                 }
             }

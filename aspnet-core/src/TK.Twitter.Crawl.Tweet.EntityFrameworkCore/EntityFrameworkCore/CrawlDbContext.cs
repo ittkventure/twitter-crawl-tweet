@@ -368,6 +368,7 @@ public class CrawlDbContext :
             b.ConfigureByConvention();
 
             b.Property(x => x.RefId).HasMaxLength(512);
+            b.Property(x => x.Ref2).HasMaxLength(512);
             b.Property(x => x.Action).HasMaxLength(256);
 
             b.HasIndex(x => new { x.Ended });

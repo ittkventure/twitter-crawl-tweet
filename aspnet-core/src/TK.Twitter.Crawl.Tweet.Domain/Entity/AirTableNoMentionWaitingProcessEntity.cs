@@ -6,6 +6,8 @@ namespace TK.Twitter.Crawl.Entity
     {
         public string RefId { get; set; }
 
+        public string Ref2 { get; set; }
+
         public string Action { get; set; }
 
         public string Signals { get; set; }

@@ -13,7 +13,12 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
     {
         private readonly AirTableService _airTableService;
         private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
-        public const string LEAD_TABLE_NAME = "No Mention New";
+        public const string TABLE_NAME = "No Mention New";
+
+        public static List<string> PULL_FIELDS = new()
+        {
+            "Project Twitter",
+        };
 
         public AirTableNoMentionManager(
             AirTableService airTableService,
@@ -28,7 +33,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             var fields = new Fields();
             fields.FieldsCollection = GetAirTableLeadFields(lead, user);
 
-            var response = await _airTableService.CreateMultipleRecords(LEAD_TABLE_NAME, new Fields[] {
+            var response = await _airTableService.CreateMultipleRecords(TABLE_NAME, new Fields[] {
                 fields
             }, typecast: true);
 
@@ -67,7 +72,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             {
                 fields.FieldsCollection.Remove("Type");
             }
-            var response = await _airTableService.UpdateMultipleRecords(LEAD_TABLE_NAME, new IdFields[] {
+            var response = await _airTableService.UpdateMultipleRecords(TABLE_NAME, new IdFields[] {
                 fields
             }, typecast: true);
 
@@ -105,7 +110,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
             });
 
             string error = null;
-            var response = await _airTableService.CreateMultipleRecords(LEAD_TABLE_NAME, fields.ToArray(), typecast: true);
+            var response = await _airTableService.CreateMultipleRecords(TABLE_NAME, fields.ToArray(), typecast: true);
             if (!response.Success)
             {
                 if (response.AirtableApiError is AirtableApiException)
@@ -184,7 +189,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
         public async Task<string> DeleteAsync(string recordId)
         {
             string error = null;
-            var response = await _airTableService.DeleteAsync(LEAD_TABLE_NAME, recordId);
+            var response = await _airTableService.DeleteAsync(TABLE_NAME, recordId);
             if (!response.Success)
             {
                 if (response.AirtableApiError is AirtableApiException)

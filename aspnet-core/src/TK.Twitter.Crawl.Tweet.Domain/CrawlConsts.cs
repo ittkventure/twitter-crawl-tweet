@@ -56,6 +56,7 @@ public static class CrawlConsts
         public const string HOSTING_GIVEAWAYS = "HOSTING_GIVEAWAYS";
         public const string BUYING_SPONSORED_POSTS = "BUYING_SPONSORED_POSTS";
         public const string BUILDING_ON_BNB_CHAIN = "BUILDING_ON_BNB_CHAIN";
+        public const string JUST_LAUNCHED_MAINNET_TESTNET = "JUST_LAUNCHED_MAINNET_TESTNET";
 
         public static string GetName(string signal)
         {
@@ -91,6 +92,9 @@ public static class CrawlConsts
                     break;
                 case BUILDING_ON_BNB_CHAIN:
                     name = "Building on BNB chain";
+                    break;
+                case JUST_LAUNCHED_MAINNET_TESTNET:
+                    name = "Just launched mainnet/testnet";
                     break;
                 default:
                     name = null;
@@ -134,6 +138,9 @@ public static class CrawlConsts
                     break;
                 case "building on bnb chain":
                     code = BUILDING_ON_BNB_CHAIN;
+                    break;
+                case "just launched mainnet/testnet":
+                    code = JUST_LAUNCHED_MAINNET_TESTNET;
                     break;
                 default:
                     code = null;

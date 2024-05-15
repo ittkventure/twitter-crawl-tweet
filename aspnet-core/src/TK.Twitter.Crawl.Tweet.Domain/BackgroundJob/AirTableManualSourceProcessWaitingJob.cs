@@ -331,7 +331,10 @@ namespace TK.Twitter.Crawl.Jobs
             try
             {
                 user = await _twitterFollowingCrawlService.GetByUsernameAsync(screenName);
-                return user;
+                if (user != null)
+                {
+                    return user;
+                }                
             }
             catch
             {

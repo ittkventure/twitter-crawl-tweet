@@ -47,7 +47,6 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<TwitterTweetUserMentionEntity, long> _twitterTweetUserMentionRepository;
         private readonly IRepository<TwitterUserStatusEntity, long> _twitterUserStatusRepository;
         private readonly IRepository<TwitterUserTypeEntity, long> _twitterUserTypeRepository;
-        private readonly TwitterFollowingCrawlService _twitterFollowingCrawlService;
         private readonly TwitterTweetCrawlJob _twitterTweetCrawlJob;
 
         Volo.Abp.Linq.IAsyncQueryableExecuter AsyncExecuter { get; set; }
@@ -69,7 +68,6 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<TwitterTweetUserMentionEntity, long> twitterTweetUserMentionRepository,
             IRepository<TwitterUserStatusEntity, long> twitterUserStatusRepository,
             IRepository<TwitterUserTypeEntity, long> twitterUserTypeRepository,
-            TwitterFollowingCrawlService twitterFollowingCrawlService,
             TwitterTweetCrawlJob twitterTweetCrawlJob)
         {
             _backgroundJobManager = backgroundJobManager;
@@ -88,7 +86,6 @@ namespace TK.Twitter.Crawl.Jobs
             _twitterTweetUserMentionRepository = twitterTweetUserMentionRepository;
             _twitterUserStatusRepository = twitterUserStatusRepository;
             _twitterUserTypeRepository = twitterUserTypeRepository;
-            _twitterFollowingCrawlService = twitterFollowingCrawlService;
             _twitterTweetCrawlJob = twitterTweetCrawlJob;
             AsyncExecuter = _airTableNoMentionWaitingProcessRepository.AsyncExecuter;
         }
@@ -235,8 +232,50 @@ namespace TK.Twitter.Crawl.Jobs
                         continue;
                     }
 
-                    var user = await GetTwitterUserAsync(item.Ref2, currentAcc)
-                        ?? throw new Exception($"Can not get User Id of {item.Ref2}");
+                    int count = 0;
+                    TwitterUserDto user = null;
+                    bool tooManyRequest = false;
+                    while (true)
+                    {
+                        count++;
+                        (tooManyRequest, user) = await GetTwitterUserAsync(item.Ref2, currentAcc);
+
+                        if (tooManyRequest)
+                        {
+                            currentAcc = await _twitterAccountRepository.FirstOrDefaultAsync(x => x.Enabled == true && x.AccountId != currentAcc.AccountId);
+                            (tooManyRequest, user) = await GetTwitterUserAsync(item.Ref2, currentAcc);
+                            if (!tooManyRequest)
+                            {
+                                if (user == null)
+                                {
+                                    throw new Exception($"Can not get User Id of {item.Ref2}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (user == null)
+                            {
+                                throw new Exception($"Can not get User Id of {item.Ref2}");
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
+                        if (count == 4)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (user == null)
+                    {
+                        throw new Exception($"Can not get User Id of {item.Ref2}");
+                    }
+
+
 
                     // User đã được đồng bộ trước đấy nên bỏ qua
                     if (user.Id == noMentionItem.UserId)
@@ -293,8 +332,11 @@ namespace TK.Twitter.Crawl.Jobs
             }
         }
 
-        private async Task<TwitterUserDto> GetTwitterUserAsync(string url, TwitterAccountEntity currentAcc)
+        public async Task<(bool, TwitterUserDto)> GetTwitterUserAsync(string url, TwitterAccountEntity currentAcc)
         {
+            bool tooManyRequest = false;
+            TwitterUserDto user = null;
+
             string screenName;
             try
             {
@@ -307,55 +349,46 @@ namespace TK.Twitter.Crawl.Jobs
 
             if (screenName.IsEmpty())
             {
-                return null;
-            }
-
-            TwitterUserDto user;
-            try
-            {
-                user = await _twitterFollowingCrawlService.GetByUsernameAsync(screenName);
-                if (user != null)
-                {
-                    return user;
-                }
-                return user;
-            }
-            catch
-            {
-                user = null;
+                return (tooManyRequest, user);
             }
 
             if (currentAcc == null)
             {
-                return user;
+                return (tooManyRequest, user);
             }
 
             try
             {
-                var response = await GetUserFromTwitterService(screenName, currentAcc.AccountId);
-                var jsonContent = JObject.Parse(response);
+                string jsonContentString;
+                (tooManyRequest, jsonContentString) = await GetUserFromTwitterService(screenName, currentAcc.AccountId);
+                if (tooManyRequest)
+                {
+                    return (tooManyRequest, user);
+                }
+
+                var jsonContent = JObject.Parse(jsonContentString);
                 var data = jsonContent["data"];
                 var userData = data["user"];
 
                 if (userData == null)
                 {
-                    return null;
+                    return (tooManyRequest, user);
                 }
 
                 if (userData["result"] == null)
                 {
-                    return null;
+                    return (tooManyRequest, user);
                 }
 
                 if (userData["result"]["__typename"].ParseIfNotNull<string>() == "UserUnavailable")
                 {
                     // User is suspended. Không lấy đc data trả về
-                    return null;
+                    return (tooManyRequest, user);
                 }
 
                 if (userData["result"]["legacy"] == null)
                 {
-                    return null;
+                    return (tooManyRequest, user);
                 }
 
                 user = new TwitterUserDto()
@@ -378,15 +411,15 @@ namespace TK.Twitter.Crawl.Jobs
                     user.CreatedAt = createdAt;
                 }
 
-                return user;
+                return (tooManyRequest, user);
             }
             catch
             {
-                return null;
+                return (tooManyRequest, user);
             }
         }
 
-        private static string GetQueryParamAfterSlash(string url)
+        static string GetQueryParamAfterSlash(string url)
         {
             if (url.EndsWith("/"))
             {
@@ -407,7 +440,7 @@ namespace TK.Twitter.Crawl.Jobs
             }
         }
 
-        private static string GetQueryParam(string url)
+        static string GetQueryParam(string url)
         {
             // Sử dụng Regex để lấy giá trị của query parameter
             // Bỏ qua giá trị đằng sau dấu ?
@@ -423,8 +456,11 @@ namespace TK.Twitter.Crawl.Jobs
             return "Không tìm thấy";
         }
 
-        private async Task<string> GetUserFromTwitterService(string screenName, string accountId)
+        private async Task<(bool, string)> GetUserFromTwitterService(string screenName, string accountId)
         {
+            bool tooManyRequest = false;
+            string jsonContent = null;
+
             Task delay(TimeSpan timeSpan)
             {
                 return Task.Delay(timeSpan);
@@ -434,6 +470,8 @@ namespace TK.Twitter.Crawl.Jobs
             try
             {
                 response = await _twitterAPIUserService.GetUserByScreenNameAsync(screenName, accountId);
+                tooManyRequest = response.TooManyRequest;
+                jsonContent = response.JsonContent;
                 if (response.RateLimit > 0 || response.TooManyRequest)
                 {
                     var subtract = response.RateLimitResetAt.Value.Subtract(_clock.Now);
@@ -453,11 +491,11 @@ namespace TK.Twitter.Crawl.Jobs
                 }
                 else
                 {
-                    return null;
+                    return (tooManyRequest, jsonContent);
                 }
             }
 
-            return response?.JsonContent;
+            return (tooManyRequest, jsonContent);
         }
     }
 }

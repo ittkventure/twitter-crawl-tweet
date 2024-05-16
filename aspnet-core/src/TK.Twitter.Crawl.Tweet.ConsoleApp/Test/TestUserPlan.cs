@@ -45,9 +45,9 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
                 foreach (var item in urls)
                 {
                     var data = await _airTableManualSourceProcessWaitingJob.GetTwitterUserAsync(item, currentAcc);
-                    if (data != null)
+                    if (data.Item2 != null)
                     {
-                        list.Add(data);
+                        list.Add(data.Item2);
                     }
                     else
                     {
@@ -82,7 +82,9 @@ namespace TK.Twitter.Crawl.ConsoleApp.Test
         private static List<string> GetUrls()
         {
             return new List<string>() {
-                "https://twitter.com/jasmy_BNB","https://twitter.com/wolongkm","https://twitter.com/BddVenture","https://twitter.com/FungiAlpha","https://twitter.com/thedefiedge","https://twitter.com/doomsdart","https://twitter.com/Wuhuoqiu","https://twitter.com/qiaoyunzi1","https://twitter.com/huahuayjy","https://twitter.com/traderrocko","https://twitter.com/ViktorDefi","https://twitter.com/FatManWithGems","https://twitter.com/0xKofi","https://twitter.com/korpi87","https://twitter.com/thewolfofdefi","https://twitter.com/corleonescrypto","https://twitter.com/MauLu5630739070","https://twitter.com/peach_1340","https://twitter.com/tztokchad","https://twitter.com/CryptoDamus411","https://twitter.com/ZoomerOracle","https://twitter.com/CryptoGideon_","https://twitter.com/myBlockBrain","https://twitter.com/563defi","https://twitter.com/Hercules_Defi","https://twitter.com/francescoweb3","https://twitter.com/CryptoNikyous","https://twitter.com/PaikCapital","https://twitter.com/notnotstorm","https://twitter.com/quant_arb","https://twitter.com/HubertX13","https://twitter.com/RuggedWojak","https://twitter.com/apes_prologue","https://twitter.com/DefiIgnas","https://twitter.com/AlphaSeeker21","https://twitter.com/Gemhunter9000","https://twitter.com/alphascan_xyz","https://twitter.com/DegenSensei","https://twitter.com/0xSami_","https://twitter.com/IamMusteee","https://twitter.com/ChrisRomanoC","https://twitter.com/EskManso","https://twitter.com/QuantMeta","https://twitter.com/CryptoYusaku"
+                //"https://twitter.com/jasmy_BNB","https://twitter.com/wolongkm","https://twitter.com/BddVenture","https://twitter.com/FungiAlpha","https://twitter.com/thedefiedge","https://twitter.com/doomsdart","https://twitter.com/Wuhuoqiu","https://twitter.com/qiaoyunzi1","https://twitter.com/huahuayjy","https://twitter.com/traderrocko","https://twitter.com/ViktorDefi","https://twitter.com/FatManWithGems","https://twitter.com/0xKofi","https://twitter.com/korpi87","https://twitter.com/thewolfofdefi","https://twitter.com/corleonescrypto","https://twitter.com/MauLu5630739070","https://twitter.com/peach_1340","https://twitter.com/tztokchad","https://twitter.com/CryptoDamus411","https://twitter.com/ZoomerOracle","https://twitter.com/CryptoGideon_","https://twitter.com/myBlockBrain","https://twitter.com/563defi","https://twitter.com/Hercules_Defi","https://twitter.com/francescoweb3","https://twitter.com/CryptoNikyous","https://twitter.com/PaikCapital","https://twitter.com/notnotstorm","https://twitter.com/quant_arb","https://twitter.com/HubertX13","https://twitter.com/RuggedWojak","https://twitter.com/apes_prologue","https://twitter.com/DefiIgnas","https://twitter.com/AlphaSeeker21","https://twitter.com/Gemhunter9000","https://twitter.com/alphascan_xyz","https://twitter.com/DegenSensei","https://twitter.com/0xSami_","https://twitter.com/IamMusteee","https://twitter.com/ChrisRomanoC","https://twitter.com/EskManso","https://twitter.com/QuantMeta","https://twitter.com/CryptoYusaku"
+
+                "https://twitter.com/StyleProtocol"
             };
         }
     }

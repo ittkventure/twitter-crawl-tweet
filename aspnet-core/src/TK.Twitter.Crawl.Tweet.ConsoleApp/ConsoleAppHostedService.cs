@@ -45,11 +45,11 @@ public class ConsoleAppHostedService : IHostedService
                              //.GetRequiredService<TestCoinGecko>().Test();              
                              //.GetRequiredService<TestTweetSignal>().RunAsync();              
                              //.GetRequiredService<ExportTweetNoMenttionReport>().RunAsync();              
-                             .GetRequiredService<TweetReRunProcessSignal>().RunAsync();              
+                             //.GetRequiredService<TweetReRunProcessSignal>().RunAsync();              
                              //.GetRequiredService<TestAirTable>().Test();              
                              //.GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
-                             //.GetRequiredService<TestUserPlan>().RunAsync();
-                             //.GetRequiredService<TestGetUserNameFromUrl>().RunAsync();
+                             .GetRequiredService<TestUserPlan>().RunAsync();
+            //.GetRequiredService<TestGetUserNameFromUrl>().RunAsync();
             await uow.CompleteAsync();
 
             await application.ShutdownAsync();

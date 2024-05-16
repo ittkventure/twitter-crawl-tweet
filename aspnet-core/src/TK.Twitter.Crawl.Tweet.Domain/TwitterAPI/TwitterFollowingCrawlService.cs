@@ -10,7 +10,7 @@ using Volo.Abp.DependencyInjection;
 namespace TK.Twitter.Crawl.TwitterAPI
 {
     public class TwitterFollowingCrawlService : ITransientDependency
-    {        
+    {
         protected HttpClient Client;
 
         public TwitterFollowingCrawlService(IConfiguration configuration)

@@ -19,7 +19,7 @@ namespace TK.Twitter.Crawl.Tweet.ConsoleApp.Test
 
         public async Task RunAsync()
         {
-            //await _googleNewsManager.CrawlAsync();
+            await _googleNewsManager.CrawlAsync();
             try
             {
                 await _googleNewsManager.SyncAirTableAsync();

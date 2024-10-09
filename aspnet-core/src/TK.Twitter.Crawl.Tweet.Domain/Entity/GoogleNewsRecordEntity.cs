@@ -5,6 +5,8 @@ namespace TK.Twitter.Crawl.Entity
 {
     public class GoogleNewsRecordEntity : FullAuditedEntity<long>
     {
+        public string Keyword { get; set; }
+
         public string Link { get; set; }
 
         public string Title { get; set; }

@@ -1,16 +1,14 @@
 ﻿using AirtableApiClient;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Notification;
 using TK.Twitter.Crawl.Tweet.AirTable;
+using TK.Twitter.Crawl.Tweet.MemoryLock;
 using Volo.Abp;
 using Volo.Abp.BackgroundJobs;
 using Volo.Abp.DependencyInjection;
@@ -18,9 +16,6 @@ using Volo.Abp.Domain.Repositories;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
-using System.Collections;
-using System.Text.Json;
-using TK.Twitter.Crawl.Tweet.MemoryLock;
 
 namespace TK.Twitter.Crawl.Jobs
 {

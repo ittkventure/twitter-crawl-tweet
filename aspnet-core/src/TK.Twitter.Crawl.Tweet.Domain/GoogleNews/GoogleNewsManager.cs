@@ -2,15 +2,16 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using TK.Twitter.Crawl.Entity;
 using TK.Twitter.Crawl.Tweet.AirTable;
 using TK.Twitter.Crawl.Tweet.SerpApi;
+using Volo.Abp;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Services;
 using Volo.Abp.Uow;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TK.Twitter.Crawl.Tweet.GoogleNews
 {
@@ -66,6 +67,7 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
             {
                 for (var start = 1; start <= 10; start++)
                 {
+                    Logger.LogInformation($"Crawling keyword: {keyword} - page {start}");
                     var (_, articles) = await _serpApiClient.SearchByKeywordAsync(keyword, start);
                     if (articles == null)
                     {
@@ -84,6 +86,7 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
 
                             var googleNewsRecord = new GoogleNewsRecordEntity
                             {
+                                Keyword = keyword,
                                 Link = article.Link,
                                 Title = article.Title,
                                 Source = article.Source,
@@ -91,7 +94,7 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
                                 DateValue = article.DateValue,
                                 Snippet = article.Snippet,
                                 Thumbnail = article.Thumbnail,
-                                CreatedAt = DateTime.Now
+                                CreatedAt = Clock.Now
                             };
 
                             await _googleNewsRecordRepository.InsertAsync(googleNewsRecord);
@@ -114,6 +117,7 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
 
         public async Task SyncAirTableAsync()
         {
+            var uow = _unitOfWorkManager.Begin(requiresNew: true);
             var waitingProcesses = await AsyncExecuter.ToListAsync(
 
                 (from p in await _googleNewsWaitingProcessRepository.GetQueryableAsync()
@@ -125,72 +129,88 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
 
             if (waitingProcesses.IsEmpty())
             {
-                return;
+                throw new BusinessException("WaitingProcess:Null");
             }
 
             var newRecords = new List<Fields>();
             var updateRecords = new List<IdFields>();
-            foreach (var process in waitingProcesses)
+
+            foreach (var groupBySource in waitingProcesses.GroupBy(x => x.SourceName))
             {
                 var query = from r in await _googleNewsRecordRepository.GetQueryableAsync()
-                            where r.Source == process.SourceName
+                            where r.Source == groupBySource.Key
                             orderby r.CreatedAt descending
                             select r;
-                process.Attempt++;
+
+                string processNote = string.Empty;
+                int statusId = 1;
                 try
                 {
                     var lastest = await AsyncExecuter.FirstOrDefaultAsync(query);
                     if (lastest == null)
                     {
-                        process.StatusId = -1;
-                        await _googleNewsWaitingProcessRepository.UpdateAsync(process);
-                        continue;
-                    }
-
-                    var record = await _googleNewsAirTableRecordRepository.FirstOrDefaultAsync(x => x.Source == process.SourceName);
-                    if (record == null)
-                    {
-                        var fields = new Fields();
-                        fields.FieldsCollection = new Dictionary<string, object>
-                        {
-                            { "Source Name", lastest.Source },
-                            { "Link", lastest.Link },
-                            { "Title", lastest.Title },
-                            { "Keyword", lastest.Snippet },
-                            { "Crawling Date", lastest.CreationTime },
-                            { "Total Articles", await AsyncExecuter.CountAsync(query) },
-                        };
-
-                        newRecords.Add(fields);
+                        statusId = -1;
+                        processNote = "Lastest not found";
                     }
                     else
                     {
-                        var fields = new IdFields(record.RecordId);
-                        fields.FieldsCollection = new Dictionary<string, object>
+                        var record = await _googleNewsAirTableRecordRepository.FirstOrDefaultAsync(x => x.Source == groupBySource.Key);
+                        if (record == null)
                         {
-                            { "Source Name", lastest.Source },
-                            { "Link", lastest.Link },
-                            { "Title", lastest.Title },
-                            { "Keyword", lastest.Snippet },
-                            { "Crawling Date", lastest.CreationTime },
-                            { "Total Articles", await AsyncExecuter.CountAsync(query) },
-                        };
-                    }
+                            var fields = new Fields();
+                            fields.FieldsCollection = new Dictionary<string, object>
+                            {
+                                { "Source Name", lastest.Source },
+                                { "Link", lastest.Link },
+                                { "Title", lastest.Title },
+                                { "Keyword", lastest.Keyword },
+                                { "Crawling Date", lastest.CreationTime },
+                                { "Total Articles", await AsyncExecuter.CountAsync(query) },
+                            };
 
-                    process.StatusId = 1;
+                            newRecords.Add(fields);
+                        }
+                        else
+                        {
+                            var fields = new IdFields(record.RecordId);
+                            fields.FieldsCollection = new Dictionary<string, object>
+                            {
+                                { "Source Name", lastest.Source },
+                                { "Link", lastest.Link },
+                                { "Title", lastest.Title },
+                                { "Keyword", lastest.Keyword },
+                                { "Crawling Date", lastest.CreationTime },
+                                { "Total Articles", await AsyncExecuter.CountAsync(query) },
+                            };
+                            updateRecords.Add(fields);
+                        }
+                        statusId = 1;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    process.Note = ex.Message;
+                    processNote = ex.Message;
                     Logger.LogException(ex);
+                    statusId = 0;
                 }
 
-                if (process.Attempt == 2)
+                foreach (var process in groupBySource)
                 {
-                    process.StatusId = -1;
+                    process.Attempt++;
+                    process.Note = processNote;
+                    process.StatusId = statusId;
+                    if (process.StatusId != 1)
+                    {
+                        if (process.Attempt == 2)
+                        {
+                            process.StatusId = -1;
+                        }
+                    }
+
+                    await _googleNewsWaitingProcessRepository.UpdateAsync(process);
                 }
 
-                await _googleNewsWaitingProcessRepository.UpdateAsync(process);
+                await uow.SaveChangesAsync();
             }
 
             if (newRecords.IsNotEmpty())
@@ -214,6 +234,8 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
                     }
                     catch { }
                 }
+
+                await uow.SaveChangesAsync();
             }
 
             if (updateRecords.IsNotEmpty())

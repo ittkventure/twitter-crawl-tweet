@@ -579,6 +579,7 @@ public class CrawlDbContext :
             b.ToTable("google_news_record");
             b.ConfigureByConvention();
 
+            b.Property(x => x.Keyword).HasMaxLength(512);
             b.Property(x => x.Link).HasMaxLength(512);
             b.Property(x => x.Title).HasMaxLength(512);
             b.Property(x => x.Source).HasMaxLength(256);

@@ -371,5 +371,17 @@ public class CrawlHttpApiHostModule : AbpModule
         {
             RecurringJob.AddOrUpdate<AirTableNoMentionPullDataWorker>(nameof(AirTableNoMentionPullDataWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:AirTableNoMentionPullDataWorker:CronExpression"));
         }
+
+        RecurringJob.RemoveIfExists(nameof(GoogleNewsPullingWorker));
+        if (config.GetValue<bool>("RecurringJobs:GoogleNewsPullingWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<GoogleNewsPullingWorker>(nameof(GoogleNewsPullingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:GoogleNewsPullingWorker:CronExpression"));
+        }
+
+        RecurringJob.RemoveIfExists(nameof(GoogleNewsAirTableSyncingWorker));
+        if (config.GetValue<bool>("RecurringJobs:GoogleNewsAirTableSyncingWorker:Enable"))
+        {
+            RecurringJob.AddOrUpdate<GoogleNewsAirTableSyncingWorker>(nameof(GoogleNewsAirTableSyncingWorker), t => t.DoWorkAsync(), config.GetValue<string>("RecurringJobs:GoogleNewsAirTableSyncingWorker:CronExpression"));
+        }
     }
 }

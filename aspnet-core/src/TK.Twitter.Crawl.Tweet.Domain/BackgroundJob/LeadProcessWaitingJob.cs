@@ -36,7 +36,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<CoinGeckoCoinEntity, long> _coinGeckoCoinRepository;
         private readonly IRepository<LeadAnotherSourceEntity, long> _leadAnotherSourceRepository;
         private readonly Lead3Manager _lead3Manager;
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly MemoryLockProvider _memoryLockProvider;
@@ -52,7 +52,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<CoinGeckoCoinEntity, long> coinGeckoCoinRepository,
             IRepository<LeadAnotherSourceEntity, long> leadAnotherSourceRepository,
             Lead3Manager lead3Manager,
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
             MemoryLockProvider memoryLockProvider)

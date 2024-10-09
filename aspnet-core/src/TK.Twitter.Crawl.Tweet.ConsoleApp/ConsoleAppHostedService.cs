@@ -12,6 +12,7 @@ using Volo.Abp.Uow;
 using System.Collections.Generic;
 using TK.Twitter.Crawl.ConsoleApp.Test;
 using TK.Twitter.Crawl.AlphaQuest;
+using TK.Twitter.Crawl.Tweet.ConsoleApp.Test;
 
 namespace TK.Twitter.Crawl.ConsoleApp;
 
@@ -48,7 +49,8 @@ public class ConsoleAppHostedService : IHostedService
                              //.GetRequiredService<TweetReRunProcessSignal>().RunAsync();              
                              //.GetRequiredService<TestAirTable>().Test();              
                              //.GetRequiredService<SyncHostingGiveawaySignal>().RunAsync();
-                             .GetRequiredService<TestUserPlan>().RunAsync();
+                             //.GetRequiredService<TestUserPlan>().RunAsync();
+                             .GetRequiredService<TestSerpApi>().RunAsync();
             //.GetRequiredService<TestGetUserNameFromUrl>().RunAsync();
             await uow.CompleteAsync();
 

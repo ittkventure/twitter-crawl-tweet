@@ -11,7 +11,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
 {
     public class AirTableManualSourceManager : DomainService
     {
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IRepository<AirTableManualSourceEntity, long> _airTableManualSourceRepository;
         public const string TABLE_NAME = "Manual Sources";
         public static List<string> FIELDS = new List<string>()
@@ -26,7 +26,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
         };
 
         public AirTableManualSourceManager(
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IRepository<AirTableManualSourceEntity, long> airTableManualSourceRepository)
         {
             _airTableService = airTableService;

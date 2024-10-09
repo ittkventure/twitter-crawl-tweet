@@ -31,7 +31,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly IRepository<AirTableNoMentionWaitingProcessEntity, long> _airTableNoMentionWaitingProcessRepository;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IDistributedEventBus _distributedEventBus;
         private readonly MemoryLockProvider _memoryLockProvider;
 
@@ -40,7 +40,7 @@ namespace TK.Twitter.Crawl.Jobs
             IRepository<AirTableNoMentionWaitingProcessEntity, long> airTableNoMentionWaitingProcessRepository,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IDistributedEventBus distributedEventBus,
             ILogger<AirTableNoMentionPullDataJob> logger,
             MemoryLockProvider memoryLockProvider)

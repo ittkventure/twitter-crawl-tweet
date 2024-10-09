@@ -11,13 +11,14 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
 {
     public class AirTableLead3Manager : DomainService
     {
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IRepository<AirTableLeadRecordMappingEntity, long> _airTableLeadRecordMappingRepository;
         private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
         public const string LEAD_TABLE_NAME = "Database_Sync_From_System";
+        
 
         public AirTableLead3Manager(
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IRepository<AirTableLeadRecordMappingEntity, long> airTableLeadRecordMappingRepository,
             IRepository<TwitterUserEntity, long> twitterUserRepository)
         {

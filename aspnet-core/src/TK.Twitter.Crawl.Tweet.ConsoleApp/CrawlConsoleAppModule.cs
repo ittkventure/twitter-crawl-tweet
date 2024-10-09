@@ -17,16 +17,16 @@ namespace TK.Twitter.Crawl.ConsoleApp;
 [DependsOn(
     typeof(AbpAutofacModule),
     typeof(CrawlEntityFrameworkCoreModule),
-    typeof(CrawlApplicationContractsModule),
+    typeof(CrawlApplicationContractsModule)
 
-    typeof(AbpBackgroundJobsHangfireModule)
+    //typeof(AbpBackgroundJobsHangfireModule)
     )]
 public class CrawlConsoleAppModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
-        ConfigureHangfire(context, configuration);
+        //ConfigureHangfire(context, configuration);
 
         Configure<AbpClockOptions>(options =>
         {

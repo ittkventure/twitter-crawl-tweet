@@ -107,6 +107,9 @@ public class CrawlDbContext :
     public DbSet<CoinGeckoCoinWaitingProcessEntity> CoinGeckoCoinWaitingProcessEntities { get; set; }
     public DbSet<AirTableNoMentionWaitingProcessEntity> AirTableNoMentionWaitingProcessEntities { get; set; }
     public DbSet<AirTableNoMentionEntity> AirTableNoMentionEntities { get; set; }
+    public DbSet<GoogleNewsWaitingProcessEntity> GoogleNewsWaitingProcessEntities { get; set; }
+    public DbSet<GoogleNewsAirTableRecordEntity> GoogleNewsAirTableRecordEntities { get; set; }
+    public DbSet<GoogleNewsRecordEntity> GoogleNewsRecordEntities { get; set; }
 
 
     public CrawlDbContext(DbContextOptions<CrawlDbContext> options)
@@ -547,6 +550,44 @@ public class CrawlDbContext :
             b.Property(x => x.Action).HasMaxLength(256);
 
             b.HasIndex(x => new { x.Ended });
+        });
+
+        builder.Entity<GoogleNewsWaitingProcessEntity>(b =>
+        {
+            b.ToTable("google_news_waiting_process");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.SourceName).HasMaxLength(256);
+
+            b.HasIndex(x => new { x.StatusId });
+        });
+
+        builder.Entity<GoogleNewsAirTableRecordEntity>(b =>
+        {
+            b.ToTable("google_news_air_table_record");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.RecordId).HasMaxLength(64);
+            b.Property(x => x.Source).HasMaxLength(256);
+
+            b.HasIndex(x => new { x.RecordId });
+            b.HasIndex(x => new { x.Source });
+        });
+
+        builder.Entity<GoogleNewsRecordEntity>(b =>
+        {
+            b.ToTable("google_news_record");
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Link).HasMaxLength(512);
+            b.Property(x => x.Title).HasMaxLength(512);
+            b.Property(x => x.Source).HasMaxLength(256);
+            b.Property(x => x.Source).HasMaxLength(256);
+            b.Property(x => x.Snippet).HasMaxLength(512);
+            b.Property(x => x.Snippet).HasMaxLength(512);
+            b.Property(x => x.Thumbnail).HasMaxLength(512);
+
+            b.HasIndex(x => new { x.Link });
         });
     }
 }

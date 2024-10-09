@@ -19,7 +19,7 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
         private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IDistributedEventBus _distributedEventBus;
         private readonly Lead3Manager _lead3Manager;
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
 
         public AirTableProcessWaitingWorker(
             IBackgroundJobManager backgroundJobManager,
@@ -28,7 +28,7 @@ namespace TK.Twitter.Crawl.BackgroundWorkers
             IUnitOfWorkManager unitOfWorkManager,
             IDistributedEventBus distributedEventBus,
             Lead3Manager lead3Manager,
-            AirTableService airTableService
+            AirTableLead3Service airTableService
             )
         {
             _backgroundJobManager = backgroundJobManager;

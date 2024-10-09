@@ -35,7 +35,7 @@ namespace TK.Twitter.Crawl.Jobs
         private readonly AirTableLead3Manager _airTableManager;
         private readonly IClock _clock;
         private readonly IUnitOfWorkManager _unitOfWorkManager;
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IDistributedEventBus _distributedEventBus;
         private readonly MemoryLockProvider _memoryLockProvider;
 
@@ -47,7 +47,7 @@ namespace TK.Twitter.Crawl.Jobs
             AirTableLead3Manager airTableManager,
             IClock clock,
             IUnitOfWorkManager unitOfWorkManager,
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IDistributedEventBus distributedEventBus,
             ILogger<AirTableCheckDataJob> logger,
             MemoryLockProvider memoryLockProvider)

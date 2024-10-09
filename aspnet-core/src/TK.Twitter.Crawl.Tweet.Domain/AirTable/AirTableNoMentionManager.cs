@@ -11,7 +11,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
 {
     public class AirTableNoMentionManager : DomainService
     {
-        private readonly AirTableService _airTableService;
+        private readonly AirTableLead3Service _airTableService;
         private readonly IRepository<TwitterUserEntity, long> _twitterUserRepository;
         public const string TABLE_NAME = "No Mention New";
 
@@ -21,7 +21,7 @@ namespace TK.Twitter.Crawl.Tweet.AirTable
         };
 
         public AirTableNoMentionManager(
-            AirTableService airTableService,
+            AirTableLead3Service airTableService,
             IRepository<TwitterUserEntity, long> twitterUserRepository)
         {
             _airTableService = airTableService;

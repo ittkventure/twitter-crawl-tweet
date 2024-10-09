@@ -1,33 +1,31 @@
 ﻿using AirtableApiClient;
-using Castle.Components.DictionaryAdapter.Xml;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp;
-using Volo.Abp.Domain.Services;
 
 namespace TK.Twitter.Crawl.Tweet.AirTable
 {
-    public class AirTableService : DomainService
+    public abstract class AirTableBaseService
     {
         private static readonly string API_KEY = "pataLMlaFRRtgJWWB.a8c1fb86baccd465acd5b91cbdd40c1756dd298b8696a541fa08524f2929cd47";
-        private static readonly string BASE_ID = "appiCJiPg7QJ9XnmT";
+        protected virtual string BaseId { get; set; }
 
         private readonly AirtableBase airTableBase;
 
-        public AirTableService()
+        public AirTableBaseService()
         {
-            airTableBase = new AirtableBase(API_KEY, BASE_ID);
+            airTableBase = new AirtableBase(API_KEY, BaseId);
         }
 
-        public async Task<List<AirtableRecord<T>>> GetAll<T>(string tableIdOrName) where T : new()
+        public async Task<List<AirtableRecord<T>>> GetAll<T>(string tableIdOrName, IEnumerable<string> fields = null) where T : new()
         {
             var result = new List<AirtableRecord<T>>();
             string offset = null;
             string errorMessage = null;
             do
             {
-                var response = await GetPaged<T>(tableIdOrName, offset, pageSize: 100);
+                var response = await GetPaged<T>(tableIdOrName, offset, fields: fields, pageSize: 100);
                 if (response.Success)
                 {
                     result.AddRange(response.Records);

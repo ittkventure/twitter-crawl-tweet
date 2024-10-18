@@ -51,7 +51,7 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
                 return null;
             }
 
-            return keywords.Select(rc => rc.Fields["Name"]).ToList();
+            return keywords.Select(rc => rc.Fields.ContainsKey("Name") ? rc.Fields["Name"] : null).Where(x => x.IsNotEmpty()).ToList();
         }
 
         public async Task CrawlAsync()

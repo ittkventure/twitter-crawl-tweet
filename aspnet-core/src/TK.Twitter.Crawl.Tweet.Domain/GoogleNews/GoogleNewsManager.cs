@@ -115,6 +115,51 @@ namespace TK.Twitter.Crawl.Tweet.GoogleNews
             }
         }
 
+        public async Task CrawlCryptoCurrencyTopicAsync()
+        {
+            var articles = await _serpApiClient.SearchCryptoCurrencyTopicAsync();
+            for (int i = 0; i < articles.Count; i += 200)
+            {
+                try
+                {
+                    var uow1 = _unitOfWorkManager.Begin(requiresNew: true);
+                    foreach (var article in articles.Skip(i).Take(200))
+                    {
+                        if (await _googleNewsRecordRepository.AnyAsync(x => x.Link == article.Link))
+                        {
+                            continue;
+                        }
+
+                        var googleNewsRecord = new GoogleNewsRecordEntity
+                        {
+                            Keyword = "Cryptocurrency Topic",
+                            Link = article.Link,
+                            Title = article.Title,
+                            Source = article.Source,
+                            Date = article.Date,
+                            DateValue = article.DateValue,
+                            Snippet = article.Snippet,
+                            Thumbnail = article.Thumbnail,
+                            CreatedAt = Clock.Now
+                        };
+
+                        await _googleNewsRecordRepository.InsertAsync(googleNewsRecord);
+                        await _googleNewsWaitingProcessRepository.InsertAsync(new GoogleNewsWaitingProcessEntity
+                        {
+                            SourceName = googleNewsRecord.Source,
+                            StatusId = 0
+                        });
+                    }
+
+                    await uow1.CompleteAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogException(ex);
+                }
+            }
+        }
+
         public async Task SyncAirTableAsync()
         {
             var uow = _unitOfWorkManager.Begin(requiresNew: true);

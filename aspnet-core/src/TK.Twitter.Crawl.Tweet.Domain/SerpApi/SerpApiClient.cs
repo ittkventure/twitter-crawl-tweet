@@ -6,7 +6,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using TK.Twitter.Crawl.Jobs;
 using Volo.Abp.DependencyInjection;
+using static TK.Twitter.Crawl.Tweet.SerpApi.SerpApiClient;
 
 namespace TK.Twitter.Crawl.Tweet.SerpApi
 {
@@ -63,6 +65,63 @@ namespace TK.Twitter.Crawl.Tweet.SerpApi
             }
             return await Task.FromResult((totalResults, articles));
 
+        }
+
+        public async Task<List<Article>> SearchCryptoCurrencyTopicAsync()
+        {
+            Hashtable ht = new Hashtable();
+            ht.Add("engine", "google_news");
+            ht.Add("gl", "us");
+            ht.Add("hl", "en");
+            ht.Add("topic_token", "CAAqJAgKIh5DQkFTRUFvS0wyMHZNSFp3YWpSZlloSUNaVzRvQUFQAQ");
+
+            var articles = new List<Article>();
+            try
+            {
+                GoogleSearch search = new GoogleSearch(ht, API_KEY);
+                JObject data = search.GetJson();
+                JArray results = (JArray)data["news_results"];
+
+                foreach (JObject result in results)
+                {
+                    var stories = result["stories"];
+                    if (stories.IsNotEmpty())
+                    {
+                        foreach (var story in stories)
+                        {
+                            var article = new Article
+                            {
+                                Title = story["title"].ParseIfNotNull<string>(),
+                                Link = story["link"].ParseIfNotNull<string>(),
+                                Source = story["source"]?["name"].ParseIfNotNull<string>(),
+                                Date = story["date"].ParseIfNotNull<string>(),
+                                Thumbnail = story["thumbnail"].ParseIfNotNull<string>()
+                            };
+
+                            articles.Add(article);
+                        }
+                    }
+                    else
+                    {
+                        var article = new Article
+                        {
+                            Title = result["title"].ParseIfNotNull<string>(),
+                            Link = result["link"].ParseIfNotNull<string>(),
+                            Source = result["source"]?["name"].ParseIfNotNull<string>(),
+                            Date = result["date"].ParseIfNotNull<string>(),
+                            Thumbnail = result["thumbnail"].ParseIfNotNull<string>()
+                        };
+
+                        articles.Add(article);
+                    }                   
+                }
+            }
+            catch (SerpApiSearchException ex)
+            {
+                _logger.LogError(ex, "SerpApiSearchException");
+            }
+
+            return await Task.FromResult(articles);
         }
 
         public static DateTime ParseRelativeTime(string relativeTime)

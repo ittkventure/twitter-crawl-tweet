@@ -19,10 +19,11 @@ namespace TK.Twitter.Crawl.Tweet.ConsoleApp.Test
 
         public async Task RunAsync()
         {
-            await _googleNewsManager.CrawlAsync();
+            await _googleNewsManager.CrawlCryptoCurrencyTopicAsync();
+            //await _googleNewsManager.CrawlAsync();
             try
             {
-                await _googleNewsManager.SyncAirTableAsync();
+                //await _googleNewsManager.SyncAirTableAsync();
 
             }
             catch (System.Exception)
